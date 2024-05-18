@@ -11,12 +11,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     // Event to log the minting of a new ressource
-    event RessourceEvent(
-        string action,
+    event ResourceCreatedEvent(
         uint256 tokenId,
         string ressourceName,
         string message
     );
+
+    event ResourceMetaDataChangedEvent(uint256 tokenId, MetaData metaData);
 
     // Holds the metadata of a ressource
     // data: the metadata of the ressource in string format
@@ -25,8 +26,9 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
     struct MetaData {
         string data;
+        uint256 resourceId;
         string ressourceName;
-        uint256[] usedToCreate;
+        uint256[] ingredients;
     }
 
     // Holds the template of a ressource.
@@ -55,7 +57,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     mapping(uint => uint[]) public tokensByResourceType;
 
     // TokenId counter
-    uint256 tokenId = 1;
+    uint256 tokenId = 65;
 
     constructor(ResourceTemplate[] memory _ressourceTemplates) ERC1155("") {
         require(
@@ -89,27 +91,32 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         return metaData[id];
     }
 
+    function setMetaData(uint256 id, string memory _metaData) public {
+        require(
+            hasRole(ADMIN_ROLE, msg.sender) || tokenOwners[id] == msg.sender,
+            "Only admin or owner can set metadata"
+        );
+        metaData[id].data = _metaData;
+
+        emit ResourceMetaDataChangedEvent(id, metaData[id]);
+    }
+
     function mintRessource(
         uint256 resourceId,
         uint256 quantity,
-        string memory _metaData
+        string memory _metaData /* ,uint256[] memory ingredients */
     ) public {
-        // Check if the ressourceId is valid and an actual ressource can be created from it
-        require(
-            ressourceTemplates[resourceId].ressource_id != 0 &&
-                keccak256(
-                    abi.encodePacked(
-                        ressourceTemplates[resourceId].ressource_name
-                    )
-                ) !=
-                keccak256(abi.encodePacked("")),
-            "Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system."
-        );
-
         // Get the actual ressource template
         ResourceTemplate storage resourceTemplate = ressourceTemplates[
             resourceId
         ];
+        // Check if the ressourceId is valid and an actual ressource can be created from it
+        require(
+            resourceTemplate.ressource_id != 0 &&
+                keccak256(abi.encodePacked(resourceTemplate.ressource_name)) !=
+                keccak256(abi.encodePacked("")),
+            "Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system."
+        );
 
         // Check if the caller has the right to mint the ressource
         require(
@@ -123,7 +130,10 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
         // Check if the caller has the required resources to mint the ressource
         require(
-            hasResourcesToMintItem(resourceTemplate, quantity),
+            hasResourcesToMintItem(
+                resourceTemplate,
+                quantity /* , ingredients */
+            ),
             "You do not have the required ressources to perform this action."
         );
 
@@ -143,6 +153,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         // Create the unique metadata for each newly minted resource
         MetaData storage meta = metaData[tokenId];
         meta.data = _metaData;
+        meta.resourceId = resourceTemplate.ressource_id;
         meta.ressourceName = resourceTemplate.ressource_name;
 
         // Update the tokenOwners mapping
@@ -151,27 +162,29 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         tokensByResourceType[resourceId].push(tokenId);
 
         // Emit the ResourceEvent
-        emit RessourceEvent(
-            "Minted",
+        emit ResourceCreatedEvent(
             tokenId,
             meta.ressourceName,
-            "Ressource minted successfully"
+            "New ressource created"
         );
+
+        emit ResourceMetaDataChangedEvent(tokenId, meta);
 
         tokenId++;
     }
 
     function hasResourcesToMintItem(
         ResourceTemplate memory template,
-        uint256 quantity
+        uint256 quantity /* ,uint256[] memory ingredients */
     ) public view returns (bool) {
+        /*  require(
+            template.ressources_needed.length == ingredients.length,
+            "The number of ingredients does not match the number of ingredients needed to create the ressource"
+        ); */
         bool returnValue = true;
         for (uint i = 0; i < template.ressources_needed.length; i++) {
             // get the needed resource ids from the template to create the new ressource
             uint256 neededResourceId = template.ressources_needed[i];
-            string storage neededResourceName = ressourceTemplates[
-                neededResourceId
-            ].ressource_name;
 
             //get all tokens of the current resource type
             uint256[] memory allResourcesOfType = tokensByResourceType[
@@ -223,7 +236,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     amountToBurn -= amountToBurn;
                     // TRACEABILITY: add the used resources to the metadata of the newly created resource
                     MetaData storage meta = metaData[tokenId];
-                    meta.usedToCreate.push(resource);
+                    meta.ingredients.push(resource);
                     break;
                 }
                 // else just burn what is left for that resource and update amountToBurn
@@ -232,7 +245,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     amountToBurn -= availableAmount;
                     // TRACEABILITY: add the used resources to the metadata of the newly created resource
                     MetaData storage meta = metaData[tokenId];
-                    meta.usedToCreate.push(resource);
+                    meta.ingredients.push(resource);
                 }
             }
         }

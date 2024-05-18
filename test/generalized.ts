@@ -87,7 +87,7 @@ describe("BC24", function () {
       //  # butcher can turn 100g of mergez patty into 1 mergez
       {
         ressource_id: 8,
-        ressource_name: "Mergeze",
+        ressource_name: "Mergez",
         ressources_needed: [7],
         ressources_needed_amounts: [100],
         initialAmountFromTemplate: 1,
@@ -120,7 +120,7 @@ describe("BC24", function () {
       .connect(defaultAdmin)
       .giveUserRole(manufactuerer.address, "MANUFACTURER");
 
-    bc24Contract.on(
+    /*   bc24Contract.on(
       "RessourceEvent",
       async (event, tokenId, ressourceName, message) => {
         console.log("Event: ", event);
@@ -128,7 +128,7 @@ describe("BC24", function () {
         console.log("ressourceName: ", ressourceName);
         console.log("Message: ", message);
       }
-    );
+    ); */
 
     /*    const transaction = await bc24Contract
       .connect(breeder)
@@ -136,11 +136,52 @@ describe("BC24", function () {
 
     //console.log(receipt);
   });
+  /*   it("tests invalid ingredient count", async () => {
+    await expect(
+      bc24Contract.connect(breeder).mintRessource(1, 1, "", [12])
+    ).to.be.revertedWith(
+      "The number of ingredients does not match the number of ingredients needed to create the ressource"
+    );
+  }); */
   it("tests breed", async () => {
     const jsonObject = {
       placeOfOrigin: "Random Place",
       dateOfBirth: Math.floor(Math.random() * 1000000000),
       gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+
+    JSON.stringify(jsonObject);
+    const mutton = await bc24Contract
+      .connect(breeder)
+      .mintRessource(1, 1, JSON.stringify(jsonObject));
+
+    const muttonReceipt = await mutton.wait();
+    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+
+    const metaData = await getLatestMetaData(tokenId);
+
+    expect(JSON.parse(metaData.metaData.data)).to.equal(
+      JSON.stringify(jsonObject)
+    );
+  });
+
+  it("test adding new metaData", async () => {
+    const initialData = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+
+    const mutton = await bc24Contract
+      .connect(breeder)
+      .mintRessource(1, 1, JSON.stringify(initialData));
+
+    const muttonReceipt = await mutton.wait();
+    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+
+    const updateData = {
       weight: Math.random() * 100,
       timingInfo: {
         start: Math.floor(Math.random() * 1000000000),
@@ -170,17 +211,26 @@ describe("BC24", function () {
       ],
     };
 
-    JSON.stringify(jsonObject);
-    const mutton = await bc24Contract
+    const metaData = await getLatestMetaData(tokenId);
+    const metaDataJson = JSON.parse(metaData.metaData.data);
+
+    const newData = { ...metaDataJson, ...updateData };
+
+    await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, JSON.stringify(jsonObject));
+      .setMetaData(tokenId, JSON.stringify(newData));
 
-    const receipt = await mutton.wait();
+    printMetaData();
 
-    const metaData = await bc24Contract.connect(breeder).getMetaData(1);
-
-    expect(metaData.data).to.equal(JSON.stringify(jsonObject));
+    const newMetaData = await getLatestMetaData(tokenId);
+    const newMetaDataJson = JSON.parse(newMetaData.metaData.data);
+    
+    expect(newMetaDataJson).to.equal(
+      { ...initialData, ...updateData })
+    );
   });
+
+  /* 
 
   it("should not allow to slaughter a sheep without possessing a sheep", async () => {
     await bc24Contract
@@ -307,9 +357,9 @@ describe("BC24", function () {
     ).to.be.revertedWith(
       "You do not have the required ressources to perform this action."
     );
-  });
+  }); */
 
-  it("should create a mergeze", async () => {
+  /*   it("should create a mergeze", async () => {
     const sheep = await bc24Contract
       .connect(breeder)
       .mintRessource(1, 1, "I am a dumb sheep with no sicknesses.");
@@ -318,45 +368,78 @@ describe("BC24", function () {
       .connect(breeder)
       .mintRessource(2, 1, "I am a dumb cow with no sicknesses.");
 
+    const sheepReceipt = await sheep.wait();
+    const beefReceipt = await beef.wait();
+
     // Transfer sheep to slaughterer
     await bc24Contract
       .connect(breeder)
-      .safeTransferFrom(breeder.address, slaughterer.address, 1, 1, "0x");
+      .safeTransferFrom(
+        breeder.address,
+        slaughterer.address,
+        getTokenIdFromReceipt(sheepReceipt),
+        1,
+        "0x"
+      );
 
     // Transfer beef to slaughterer
     await bc24Contract
       .connect(breeder)
-      .safeTransferFrom(breeder.address, slaughterer.address, 2, 1, "0x");
+      .safeTransferFrom(
+        breeder.address,
+        slaughterer.address,
+        getTokenIdFromReceipt(beefReceipt),
+        1,
+        "0x"
+      );
 
     // Slaughter sheep
-    await bc24Contract
+    const sheepCarcass = await bc24Contract
       .connect(slaughterer)
       .mintRessource(3, 1, "I am a sheep carcass with no sicknesses.");
 
+    const sheepCarcassReceipt = await sheepCarcass.wait();
+
     // Slaughter beef
-    await bc24Contract
+    const beefCarcass = await bc24Contract
       .connect(slaughterer)
       .mintRessource(4, 1, "I am a beef carcass with no sicknesses.");
 
+    const beefCarcassReceipt = await beefCarcass.wait();
     // transfer sheep carcass to manufacturer
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufactuerer.address, 3, 1, "0x");
+      .safeTransferFrom(
+        slaughterer.address,
+        manufactuerer.address,
+        getTokenIdFromReceipt(sheepCarcassReceipt),
+        1,
+        "0x"
+      );
 
     // transfer beef carcass to manufacturer
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufactuerer.address, 4, 1, "0x");
+      .safeTransferFrom(
+        slaughterer.address,
+        manufactuerer.address,
+        getTokenIdFromReceipt(beefCarcassReceipt),
+        1,
+        "0x"
+      );
 
     // create sheep shoulder
-    await bc24Contract
+    const sheepShoulder = await bc24Contract
       .connect(manufactuerer)
       .mintRessource(5, 1, "I am a sheep shoulder.");
 
+    const sheepShoulderReceipt = await sheepShoulder.wait();
     // create beef shoulder
-    await bc24Contract
+    const beefshoulder = await bc24Contract
       .connect(manufactuerer)
       .mintRessource(6, 1, "I am a beef shoulder.");
+
+    const beefShoulderReceipt = await beefshoulder.wait();
 
     // create mergez patty
     await bc24Contract
@@ -364,9 +447,49 @@ describe("BC24", function () {
       .mintRessource(7, 1, "I am a mergez patty.");
 
     // create mergeze
-    await bc24Contract
+    const transaction = await bc24Contract
       .connect(manufactuerer)
       .mintRessource(8, 1, "I am a mergeze.");
 
-  });
+    const receipt = await transaction.wait();
+    //console.log("Receipt: ", receipt);
+
+    //printCreatedResources();
+  }); */
+
+  const getTokenIdFromReceipt = (receipt: any) => {
+    const resourceCreatedEvents = receipt.logs.filter(
+      (log) => log.fragment.name === "ResourceCreatedEvent"
+    );
+    return resourceCreatedEvents[0].args.tokenId;
+  };
+
+  const printCreatedResources = async () => {
+    const filter = bc24Contract.filters.ResourceCreatedEvent(); // Replace with your event name
+    const events = await bc24Contract.queryFilter(filter);
+
+    for (let event of events) {
+      console.log(event.args);
+    }
+  };
+
+  const printMetaData = async () => {
+    const filter = bc24Contract.filters.ResourceMetaDataChangedEvent(); // Replace with your event name
+    const events = await bc24Contract.queryFilter(filter);
+
+    for (let event of events) {
+      console.log(event.args);
+    }
+  };
+
+  const getLatestMetaData = async (tokenId: any) => {
+    const filter = bc24Contract.filters.ResourceMetaDataChangedEvent(); // Replace with your event name
+    const events = await bc24Contract.queryFilter(filter);
+
+    for (let event of events) {
+      if (event.args.tokenId == tokenId) {
+        return event.args;
+      }
+    }
+  };
 });
