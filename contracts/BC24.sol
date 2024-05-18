@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "hardhat/console.sol";
 
 contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
@@ -14,10 +15,15 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     event ResourceCreatedEvent(
         uint256 tokenId,
         string ressourceName,
-        string message
+        string message,
+        address caller
     );
 
-    event ResourceMetaDataChangedEvent(uint256 tokenId, MetaData metaData);
+    event ResourceMetaDataChangedEvent(
+        uint256 tokenId,
+        MetaData metaData,
+        address caller
+    );
 
     // Holds the metadata of a ressource
     // data: the metadata of the ressource in string format
@@ -41,6 +47,8 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         uint256[] ressources_needed_amounts;
         uint256 initialAmountFromTemplate;
         string required_role;
+        uint256[] producesResources;
+        uint256[] producesResourcesAmounts;
     }
 
     // ResourceId to ResourceTemplate mapping
@@ -96,20 +104,84 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             hasRole(ADMIN_ROLE, msg.sender) || tokenOwners[id] == msg.sender,
             "Only admin or owner can set metadata"
         );
-        metaData[id].data = _metaData;
 
-        emit ResourceMetaDataChangedEvent(id, metaData[id]);
+        MetaData storage meta = metaData[tokenId];
+        meta.data = _metaData;
+
+        emit ResourceMetaDataChangedEvent(id, meta, msg.sender);
+    }
+
+    function mintOneToMany(
+        uint256 producerToken,
+        string memory _metaData
+    ) public {
+        require(
+            balanceOf(msg.sender, producerToken) > 0,
+            "This Resource has been already been used."
+        );
+
+        ResourceTemplate storage resourceTemplate = ressourceTemplates[
+            metaData[producerToken].resourceId
+        ];
+
+        uint256[] memory produces = resourceTemplate.producesResources;
+
+        for (uint i = 0; i < produces.length; i++) {
+            ResourceTemplate
+                storage producedResourceTemplate = ressourceTemplates[
+                    produces[i]
+                ];
+
+            for (
+                uint j = 0;
+                j < resourceTemplate.producesResourcesAmounts[i];
+                j++
+            ) {
+                _mint(
+                    msg.sender,
+                    tokenId,
+                    producedResourceTemplate.initialAmountFromTemplate,
+                    ""
+                );
+                MetaData storage meta = metaData[tokenId];
+                meta.resourceId = producedResourceTemplate.ressource_id;
+                meta.ressourceName = producedResourceTemplate.ressource_name;
+                meta.ingredients.push(producerToken);
+                meta.data = _metaData;
+
+                emit ResourceCreatedEvent(
+                    tokenId,
+                    producedResourceTemplate.ressource_name,
+                    string(
+                        abi.encodePacked(
+                            meta.ressourceName,
+                            " created from ",
+                            metaData[producerToken].ressourceName
+                        )
+                    ),
+                    msg.sender
+                );
+
+                emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+
+                tokenId++;
+            }
+        }
+
+        _burn(msg.sender, producerToken, 1);
     }
 
     function mintRessource(
         uint256 resourceId,
         uint256 quantity,
-        string memory _metaData /* ,uint256[] memory ingredients */
+        string memory _metaData,
+        uint256[] memory ingredients
     ) public {
         // Get the actual ressource template
         ResourceTemplate storage resourceTemplate = ressourceTemplates[
             resourceId
         ];
+
         // Check if the ressourceId is valid and an actual ressource can be created from it
         require(
             resourceTemplate.ressource_id != 0 &&
@@ -128,80 +200,103 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             "Caller does not have the right to use the process"
         );
 
-        // Check if the caller has the required resources to mint the ressource
-        require(
-            hasResourcesToMintItem(
-                resourceTemplate,
-                quantity /* , ingredients */
-            ),
-            "You do not have the required ressources to perform this action."
-        );
-
-        // Burn the resources needed to mint the ressource
-        _burnResources(resourceTemplate, quantity);
+        // Check if the call require(
+        hasResourcesToMintItem(resourceTemplate, quantity, ingredients);
 
         // Mint the new ressource
-        // The amount of the ressource minted is the initialAmountFromTemplate * quantity
-        // For example: A template for a beef shoulder with initialAmountFromTemplate = 20000 (20kg) and quantity = 5 will mint 100000 (100kg) worth of the beef shoulder ressources
-        _mint(
-            msg.sender,
-            tokenId,
-            resourceTemplate.initialAmountFromTemplate * quantity,
-            ""
-        );
+        // if the ressource is not fungible (NFT), mint only one
+        // if the ressource is fungible, mint the quantity specified
 
-        // Create the unique metadata for each newly minted resource
-        MetaData storage meta = metaData[tokenId];
-        meta.data = _metaData;
-        meta.resourceId = resourceTemplate.ressource_id;
-        meta.ressourceName = resourceTemplate.ressource_name;
+        for (uint i = 0; i < quantity; i++) {
+            // Burn the resources needed to mint the ressource
+            uint256[] memory burntIngredients = _burnResources(
+                resourceTemplate,
+                1,
+                ingredients
+            );
+            _mint(
+                msg.sender,
+                tokenId,
+                resourceTemplate.initialAmountFromTemplate,
+                ""
+            );
 
-        // Update the tokenOwners mapping
-        tokenOwners[tokenId] = msg.sender;
-        // Add the tokenId to the resource type mapping
-        tokensByResourceType[resourceId].push(tokenId);
+            // Create the unique metadata for each newly minted resource
+            MetaData storage meta = metaData[tokenId];
+            meta.data = _metaData;
+            meta.resourceId = resourceTemplate.ressource_id;
+            meta.ressourceName = resourceTemplate.ressource_name;
+            meta.ingredients = burntIngredients;
 
-        // Emit the ResourceEvent
-        emit ResourceCreatedEvent(
-            tokenId,
-            meta.ressourceName,
-            "New ressource created"
-        );
+            // Update the tokenOwners mapping
+            tokenOwners[tokenId] = msg.sender;
+            // Add the tokenId to the resource type mapping
+            tokensByResourceType[resourceId].push(tokenId);
 
-        emit ResourceMetaDataChangedEvent(tokenId, meta);
+            // Emit the ResourceEvent
+            emit ResourceCreatedEvent(
+                tokenId,
+                meta.ressourceName,
+                "New ressource created",
+                msg.sender
+            );
 
-        tokenId++;
+            emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+
+            tokenId++;
+        }
     }
 
     function hasResourcesToMintItem(
         ResourceTemplate memory template,
-        uint256 quantity /* ,uint256[] memory ingredients */
+        uint256 quantity,
+        uint256[] memory ingredients
     ) public view returns (bool) {
-        /*  require(
-            template.ressources_needed.length == ingredients.length,
-            "The number of ingredients does not match the number of ingredients needed to create the ressource"
-        ); */
         bool returnValue = true;
         for (uint i = 0; i < template.ressources_needed.length; i++) {
             // get the needed resource ids from the template to create the new ressource
             uint256 neededResourceId = template.ressources_needed[i];
+            uint256 neededAmount = template.ressources_needed_amounts[i];
 
-            //get all tokens of the current resource type
-            uint256[] memory allResourcesOfType = tokensByResourceType[
-                neededResourceId
-            ];
+            uint256 totalResourceBalance = 0;
 
-            // count all the available quantities of the resources that actually belong to the user
-            uint256 totalAvailable = 0;
-            for (uint j = 0; j < allResourcesOfType.length; j++) {
-                totalAvailable += balanceOf(msg.sender, allResourcesOfType[j]);
+            for (uint j = 0; j < ingredients.length; j++) {
+                // Get the metaData of the ingredient
+                MetaData storage meta = metaData[ingredients[j]];
+                // If the resourceId of the ingredient matches the specific resourceId
+                if (meta.resourceId == neededResourceId) {
+                    // Get the balance of the ingredient
+                    uint256 balance = balanceOf(msg.sender, ingredients[j]);
+                    // Add the balance to the total balance
+                    totalResourceBalance += balance;
+                }
             }
-            // if the user does not have enough resources to mint the new ressource, return false
-            if (
-                totalAvailable <
-                template.ressources_needed_amounts[i] * quantity
-            ) {
+
+            uint256 possibleQuantity = totalResourceBalance / neededAmount;
+
+            // Check if the ingredient provided ingredient list contains enough of the needed resource
+            if (possibleQuantity < quantity) {
+                // Revert with a message that includes the possible quantity
                 returnValue = false;
+                revert(
+                    string(
+                        abi.encodePacked(
+                            "\nYou do not have the required resource (",
+                            ressourceTemplates[template.ressources_needed[i]]
+                                .ressource_name,
+                            ") to perform this action.\n",
+                            "You have: ",
+                            Strings.toString(totalResourceBalance),
+                            "\n",
+                            "You need: ",
+                            Strings.toString(neededAmount * quantity),
+                            "\n",
+                            "With the resources in your possession, you could create ",
+                            Strings.toString(possibleQuantity),
+                            " items."
+                        )
+                    )
+                );
             }
         }
         return returnValue;
@@ -209,46 +304,46 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
     function _burnResources(
         ResourceTemplate memory template,
-        uint256 quantity
-    ) public {
+        uint256 quantity,
+        uint256[] memory ingredients
+    ) public returns (uint256[] memory) {
+        uint256[] memory burntIngredients = new uint256[](ingredients.length);
+        uint256 burntIngredientsCount = 0;
         for (uint i = 0; i < template.ressources_needed.length; i++) {
             // get the current resource id from the template to create the new ressource
             uint256 neededResourceId = template.ressources_needed[i];
 
             // calculate the needed amount of the resource
             // for example: if the template says we need 20 (20g) of beef shoulder to create a new ressource and the quantity is 5, we need 100 (100g) of beef shoulder
-            uint256 amountToBurn = template.ressources_needed_amounts[i] *
+            uint256 neededAmount = template.ressources_needed_amounts[i] *
                 quantity;
 
-            // get all tokens of the current resource type
-            uint256[] memory allResourcesOfType = tokensByResourceType[
-                neededResourceId
-            ];
+            for (uint j = 0; j < ingredients.length; j++) {
+                uint256 resource = ingredients[j];
+                // If the resourceId of the ingredient matches the specific resourceId
+                if (metaData[resource].resourceId == neededResourceId) {
+                    // Get the balance of the ingredient
+                    uint256 availableAmount = balanceOf(msg.sender, resource);
 
-            for (uint j = 0; j < allResourcesOfType.length; j++) {
-                // check current resource balance
-                uint256 resource = allResourcesOfType[j];
-                uint256 availableAmount = balanceOf(msg.sender, resource);
+                    uint256 amountToBurn = availableAmount >= neededAmount
+                        ? neededAmount
+                        : availableAmount;
 
-                //if enough resources to burn just burn them and break the loop
-                if (availableAmount >= amountToBurn) {
+                    if (amountToBurn == 0) {
+                        continue;
+                    }
+
                     _burn(msg.sender, resource, amountToBurn);
-                    amountToBurn -= amountToBurn;
+
                     // TRACEABILITY: add the used resources to the metadata of the newly created resource
-                    MetaData storage meta = metaData[tokenId];
-                    meta.ingredients.push(resource);
-                    break;
-                }
-                // else just burn what is left for that resource and update amountToBurn
-                else {
-                    _burn(msg.sender, resource, availableAmount);
-                    amountToBurn -= availableAmount;
-                    // TRACEABILITY: add the used resources to the metadata of the newly created resource
-                    MetaData storage meta = metaData[tokenId];
-                    meta.ingredients.push(resource);
+                    burntIngredients[burntIngredientsCount] = resource;
+                    burntIngredientsCount++;
+
+                    neededAmount -= amountToBurn;
                 }
             }
         }
+        return burntIngredients;
     }
 
     function supportsInterface(
