@@ -29,9 +29,15 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     // data: the metadata of the ressource in string format
     // ressourceName: the name of the ressource. Automattically taken from the template
     // usedToCreate: an array of the tokenIds used to create this ressource (TRACABILITY OF EXACT TOKENS USED TO CREATE A NEW ONE)
+    struct Data {
+        string required_role;
+        string dataString;
+        address lastModifiedBy;
+        uint lastModifiedAt;
+    }
 
     struct MetaData {
-        string data;
+        Data[] data;
         uint256 resourceId;
         string ressourceName;
         uint256[] ingredients;
@@ -57,15 +63,15 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     // TokenId to MetaData mapping
     mapping(uint256 => MetaData) public metaData;
 
-    // TokenId to Owner mapping
-    mapping(uint256 => address) public tokenOwners;
-
     // ResourceId to TokenId mapping
     // This is needed if we want to know which tokens are of a certain type in the minining and bruning process
     mapping(uint => uint[]) public tokensByResourceType;
 
+    // User to Role mapping
+    mapping(address => string) public userRoles;
+
     // TokenId counter
-    uint256 tokenId = 65;
+    uint256 globalTokenId = 65;
 
     constructor(ResourceTemplate[] memory _ressourceTemplates) ERC1155("") {
         require(
@@ -93,22 +99,50 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     function giveUserRole(address account, string memory role) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can assign role");
         _grantRole(keccak256(abi.encode(role)), account);
+        userRoles[account] = role;
     }
 
     function getMetaData(uint256 id) public view returns (MetaData memory) {
         return metaData[id];
     }
 
-    function setMetaData(uint256 id, string memory _metaData) public {
+    function setMetaData(uint256 tokenId, string memory _metaData) public {
         require(
-            hasRole(ADMIN_ROLE, msg.sender) || tokenOwners[id] == msg.sender,
+            hasRole(ADMIN_ROLE, msg.sender) ||
+                balanceOf(msg.sender, tokenId) > 0,
             "Only admin or owner can set metadata"
         );
 
-        MetaData storage meta = metaData[tokenId];
-        meta.data = _metaData;
+        MetaData storage metaDataArray = metaData[tokenId];
+        Data[] storage data = metaDataArray.data;
+        bool metaDataForRoleDoesNotExists = true;
 
-        emit ResourceMetaDataChangedEvent(id, meta, msg.sender);
+        for (uint i = 0; i < data.length; i++) {
+            if (
+                hasRole(ADMIN_ROLE, msg.sender) ||
+                hasRole(
+                    keccak256(abi.encode(data[i].required_role)),
+                    msg.sender
+                )
+            ) {
+                data[i].dataString = _metaData;
+                data[i].lastModifiedBy = msg.sender;
+                data[i].lastModifiedAt = block.timestamp;
+                metaDataForRoleDoesNotExists = false;
+            }
+        }
+
+        if (metaDataForRoleDoesNotExists) {
+            Data memory newDataOfRole = Data({
+                dataString: _metaData,
+                required_role: userRoles[msg.sender],
+                lastModifiedBy: msg.sender,
+                lastModifiedAt: block.timestamp
+            });
+            data.push(newDataOfRole);
+        }
+
+        emit ResourceMetaDataChangedEvent(tokenId, metaDataArray, msg.sender);
     }
 
     function mintOneToMany(
@@ -139,18 +173,25 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             ) {
                 _mint(
                     msg.sender,
-                    tokenId,
+                    globalTokenId,
                     producedResourceTemplate.initialAmountFromTemplate,
                     ""
                 );
-                MetaData storage meta = metaData[tokenId];
+                MetaData storage meta = metaData[globalTokenId];
                 meta.resourceId = producedResourceTemplate.ressource_id;
                 meta.ressourceName = producedResourceTemplate.ressource_name;
                 meta.ingredients.push(producerToken);
-                meta.data = _metaData;
+                meta.data.push(
+                    Data({
+                        dataString: _metaData,
+                        required_role: producedResourceTemplate.required_role,
+                        lastModifiedBy: msg.sender,
+                        lastModifiedAt: block.timestamp
+                    })
+                );
 
                 emit ResourceCreatedEvent(
-                    tokenId,
+                    globalTokenId,
                     producedResourceTemplate.ressource_name,
                     string(
                         abi.encodePacked(
@@ -162,9 +203,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     msg.sender
                 );
 
-                emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+                emit ResourceMetaDataChangedEvent(
+                    globalTokenId,
+                    meta,
+                    msg.sender
+                );
 
-                tokenId++;
+                globalTokenId++;
             }
         }
 
@@ -216,34 +261,40 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             );
             _mint(
                 msg.sender,
-                tokenId,
+                globalTokenId,
                 resourceTemplate.initialAmountFromTemplate,
                 ""
             );
 
             // Create the unique metadata for each newly minted resource
-            MetaData storage meta = metaData[tokenId];
-            meta.data = _metaData;
+            MetaData storage meta = metaData[globalTokenId];
+
             meta.resourceId = resourceTemplate.ressource_id;
             meta.ressourceName = resourceTemplate.ressource_name;
             meta.ingredients = burntIngredients;
+            meta.data.push(
+                Data({
+                    dataString: _metaData,
+                    required_role: resourceTemplate.required_role,
+                    lastModifiedBy: msg.sender,
+                    lastModifiedAt: block.timestamp
+                })
+            );
 
-            // Update the tokenOwners mapping
-            tokenOwners[tokenId] = msg.sender;
             // Add the tokenId to the resource type mapping
-            tokensByResourceType[resourceId].push(tokenId);
+            tokensByResourceType[resourceId].push(globalTokenId);
 
             // Emit the ResourceEvent
             emit ResourceCreatedEvent(
-                tokenId,
+                globalTokenId,
                 meta.ressourceName,
                 "New ressource created",
                 msg.sender
             );
 
-            emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+            emit ResourceMetaDataChangedEvent(globalTokenId, meta, msg.sender);
 
-            tokenId++;
+            globalTokenId++;
         }
     }
 

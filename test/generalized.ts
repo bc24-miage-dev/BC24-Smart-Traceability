@@ -1,5 +1,6 @@
 import { expect, assert } from "chai";
 import { ethers } from "hardhat";
+import { int } from "hardhat/internal/core/params/argumentTypes";
 
 describe("BC24", function () {
   let bc24Contract: any;
@@ -7,6 +8,7 @@ describe("BC24", function () {
   let defaultAdmin: any;
   let breeder: any;
   let slaughterer: any;
+  let transporter: any;
   let manufactuerer: any;
 
   this.beforeEach(async function () {
@@ -14,6 +16,7 @@ describe("BC24", function () {
     breeder = (await ethers.getSigners())[1];
     slaughterer = (await ethers.getSigners())[2];
     manufactuerer = (await ethers.getSigners())[3];
+    transporter = (await ethers.getSigners())[4];
     /* This it the general setup needed for all the contracts*/
     /* If a new contract is put into an interface it needs to be added likewise in the SetupService */
 
@@ -57,7 +60,7 @@ describe("BC24", function () {
         ressource_name: "Sheep shoulder",
         ressources_needed: [1],
         ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 5000,
+        initialAmountFromTemplate: 2500,
         required_role: "MANUFACTURER",
         producesResources: [],
         producesResourcesAmounts: [],
@@ -118,7 +121,7 @@ describe("BC24", function () {
         ressource_name: "Cow shoulder",
         ressources_needed: [2],
         ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 7000,
+        initialAmountFromTemplate: 3500,
         required_role: "MANUFACTURER",
         producesResources: [],
         producesResourcesAmounts: [],
@@ -212,6 +215,10 @@ describe("BC24", function () {
 
     await bc24Contract
       .connect(defaultAdmin)
+      .giveUserRole(transporter.address, "TRANSPORTER");
+
+    await bc24Contract
+      .connect(defaultAdmin)
       .giveUserRole(slaughterer.address, "SLAUGHTERER");
 
     await bc24Contract
@@ -236,7 +243,9 @@ describe("BC24", function () {
     const tokenId = getTokenIdFromReceipt(muttonReceipt);
     const metaData = await getLatestMetaData(tokenId);
 
-    expect(JSON.parse(metaData.metaData.data)).to.deep.equal(jsonObject);
+    expect(JSON.parse(metaData.metaData.data[0].dataString)).to.deep.equal(
+      jsonObject
+    );
   });
 
   it("test adding new metaData", async () => {
@@ -285,7 +294,7 @@ describe("BC24", function () {
     };
 
     const metaData = await getLatestMetaData(tokenId);
-    const metaDataJson = JSON.parse(metaData.metaData.data);
+    const metaDataJson = JSON.parse(metaData.metaData.data[0].dataString);
 
     const newData = { ...updateData, ...metaDataJson };
 
@@ -296,9 +305,82 @@ describe("BC24", function () {
     await setMetaDataTransaction.wait();
 
     const newMetaData = await getLatestMetaData(tokenId);
-    const newMetaDataJson = JSON.parse(newMetaData.metaData.data);
+
+    const newMetaDataJson = JSON.parse(newMetaData.metaData.data[0].dataString);
 
     expect(newMetaDataJson).to.deep.equal({ ...updateData, ...initialData });
+  });
+
+  it("test transporting resource", async () => {
+    const initialData = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+
+    const mutton = await bc24Contract
+      .connect(breeder)
+      .mintRessource(1, 1, JSON.stringify(initialData), []);
+
+    const muttonReceipt = await mutton.wait();
+    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+
+    const transferTransaction = await bc24Contract
+      .connect(breeder)
+      .safeTransferFrom(breeder.address, transporter.address, tokenId, 1, "0x");
+
+    const transferReceit = await transferTransaction.wait();
+
+    const transferData = {
+      start: "Random Place",
+      end: "Zurich",
+      start_date: Math.floor(Math.random() * 1000000000),
+      temperature: Math.random() * 100,
+    };
+
+    await bc24Contract
+      .connect(transporter)
+      .setMetaData(tokenId, JSON.stringify(transferData));
+
+    let metaData = await getLatestMetaData(tokenId);
+
+    //console.log(metaData.metaData.data);
+
+    expect(JSON.parse(metaData.metaData.data[0].dataString)).to.deep.equal(
+      initialData
+    );
+    expect(JSON.parse(metaData.metaData.data[1].dataString)).to.deep.equal(
+      transferData
+    );
+
+    const transferData2 = {
+      start: "Random Place",
+      end: "Zurich",
+      end_date: Math.floor(Math.random() * 1000000000),
+      temperature: Math.random() * 100,
+    };
+
+    let newMetaData;
+
+    for (let dataItem of metaData.metaData.data) {
+      if (dataItem.required_role == "TRANSPORTER") {
+        newMetaData = { ...JSON.parse(dataItem.dataString), ...transferData2 };
+      }
+    }
+
+    await bc24Contract
+      .connect(transporter)
+      .setMetaData(tokenId, JSON.stringify(newMetaData));
+
+    metaData = await getLatestMetaData(tokenId);
+
+    expect(JSON.parse(metaData.metaData.data[0].dataString)).to.deep.equal(
+      initialData
+    );
+    expect(JSON.parse(metaData.metaData.data[1].dataString)).to.deep.equal(
+      newMetaData
+    );
   });
 
   it("should not allow to create resource if one does not own the necessary ingredients", async () => {
@@ -339,7 +421,9 @@ describe("BC24", function () {
 
     const carcassMetaDataEvent = await getLatestMetaData(sheepCarcassTokenId);
 
-    expect(carcassMetaDataEvent.metaData.data).to.equal("Sheep carcass.");
+    expect(carcassMetaDataEvent.metaData.data[0].dataString).to.equal(
+      "Sheep carcass."
+    );
     expect(carcassMetaDataEvent.metaData.ingredients).to.deep.equal([tokenId]);
   });
 
@@ -469,7 +553,7 @@ describe("BC24", function () {
     }
 
     // create X patties
-    const x = 101;
+    const x = 51;
     const mergezPatty = await bc24Contract
       .connect(manufactuerer)
       .mintRessource(7, x, "Mergez Patty", [
@@ -478,25 +562,24 @@ describe("BC24", function () {
       ]);
 
     const mergezPattyReceipt = await mergezPatty.wait();
-    const mergezPattyTokenId = getTokenIdFromReceipt(mergezPattyReceipt);
 
     expect(
       await bc24Contract
         .connect(manufactuerer)
         .balanceOf(manufactuerer.address, beefShoulderTokenId[0])
-    ).to.equal(7000 - x * 50);
+    ).to.equal(3500 - x * 50);
 
     expect(
       await bc24Contract
         .connect(manufactuerer)
         .balanceOf(manufactuerer.address, sheepShoulderTokenId[0])
-    ).to.equal(5000 - (x - 1) * 50);
+    ).to.equal(2500 - (x - 1) * 50);
 
     expect(
       await bc24Contract
         .connect(manufactuerer)
         .balanceOf(manufactuerer.address, sheepShoulderTokenId[1])
-    ).to.equal(5000 - (x - 5000 / 50) * 50);
+    ).to.equal(2500 - (x - 2500 / 50) * 50);
   });
 
   const getTokenIdFromReceipt = (receipt: any) => {
