@@ -1,6 +1,6 @@
 import { expect, assert } from "chai";
 import { ethers } from "hardhat";
-import { int } from "hardhat/internal/core/params/argumentTypes";
+import { ressourceTemplates } from "../resource_templates/templates";
 
 describe("BC24", function () {
   let bc24Contract: any;
@@ -20,193 +20,8 @@ describe("BC24", function () {
     /* This it the general setup needed for all the contracts*/
     /* If a new contract is put into an interface it needs to be added likewise in the SetupService */
 
-    const ressourceTemplates = [
-      {
-        // raisE mutton
-        ressource_id: 1,
-        ressource_name: "Sheep",
-        ressources_needed: [],
-        ressources_needed_amounts: [],
-        initialAmountFromTemplate: 1,
-        required_role: "BREEDER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        // rais cow
-        ressource_id: 2,
-        ressource_name: "Cow",
-        ressources_needed: [],
-        ressources_needed_amounts: [],
-        initialAmountFromTemplate: 1,
-        required_role: "BREEDER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-
-      {
-        // kill mutton
-        ressource_id: 3,
-        ressource_name: "Sheep carcass",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 1,
-        required_role: "SLAUGHTERER",
-        producesResources: [20, 21, 22, 23, 24],
-        producesResourcesAmounts: [2, 1, 1, 2, 1],
-      },
-      {
-        ressource_id: 20,
-        ressource_name: "Sheep shoulder",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 2500,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 21,
-        ressource_name: "Sheep hip",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 5000,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 22,
-        ressource_name: "Sheep back",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 5000,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 23,
-        ressource_name: "Sheep rips",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 7500,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 24,
-        ressource_name: "Sheep brains",
-        ressources_needed: [1],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 700,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        // kill cow
-        ressource_id: 4,
-        ressource_name: "Cow carcass",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 1,
-        required_role: "SLAUGHTERER",
-        producesResources: [30, 31, 32, 33, 34],
-        producesResourcesAmounts: [2, 1, 1, 2, 1],
-      },
-      {
-        ressource_id: 30,
-        ressource_name: "Cow shoulder",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 3500,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 31,
-        ressource_name: "Cow hip",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 1000,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 32,
-        ressource_name: "Cow back",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 2000,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 33,
-        ressource_name: "Cow rips",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 1500,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      {
-        ressource_id: 34,
-        ressource_name: "Cow brains",
-        ressources_needed: [2],
-        ressources_needed_amounts: [1],
-        initialAmountFromTemplate: 1400,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-
-      // TODO: how can one carcass be used to create mutliple ressources (shoulder, brains, hip, back, rips, etc)
-
-      // Processor can turn 50g of mutton shoulder and 20g of beef shoulder in 100g of mergez patty
-      // mint(7,100,[5,6],"I am a mergez patty.")
-      {
-        ressource_id: 7,
-        ressource_name: "Mergez Patty",
-        ressources_needed: [20, 30],
-        ressources_needed_amounts: [50, 50],
-        initialAmountFromTemplate: 100,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      //  # butcher can turn 100g of mergez patty into 1 mergez
-      {
-        ressource_id: 8,
-        ressource_name: "Mergez",
-        ressources_needed: [7],
-        ressources_needed_amounts: [100],
-        initialAmountFromTemplate: 1,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-      //  distributor can turn 2 mergez into 1 mergez sandwich
-      {
-        ressource_id: 9,
-        ressource_name: "Mergez sandwich",
-        ressources_needed: [8],
-        ressources_needed_amounts: [2],
-        initialAmountFromTemplate: 1,
-        required_role: "MANUFACTURER",
-        producesResources: [],
-        producesResourcesAmounts: [],
-      },
-    ];
-
-    const bc24 = await ethers.getContractFactory("BC24");
-    bc24Contract = await bc24.deploy(ressourceTemplates);
+    const bc24 = await ethers.getContractFactory("BC24_Update");
+    bc24Contract = await bc24.deploy(defaultAdmin, ressourceTemplates);
     await bc24Contract.waitForDeployment();
 
     await bc24Contract
@@ -603,7 +418,7 @@ describe("BC24", function () {
     const events = await bc24Contract.queryFilter(filter);
 
     for (let event of events) {
-      console.log(event.args);
+      console.log(event.args.metaData.data);
     }
   };
 

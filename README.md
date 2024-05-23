@@ -14,10 +14,26 @@ npm install
 npm test
 ```
 
-## Deploying the contract (Not done yet.)
+## Pre deployment
+Make sure to add at leas the admin private key before deplying the contract. 
+This address is the owner of the contract. 
+
+The remaining privat keys will be used in the GUI to test. So add at your leasure. 
+
+## Deploying the contract
 
 You can target any network from your Hardhat config using:
 
 ```
-npx hardhat run --network <network-name> scripts/deploy.ts
+npx hardhat run scripts/deploy.ts --network besu
+```
+
+## Interact with existing contract
+
+Get the contract address and add it into either after_deploy.ts or gui.ts
+
+gui.ts lets you interact with a cli that has all the functionality.
+
+```
+npx hardhat run scripts/gui.ts --network besu
 ```
