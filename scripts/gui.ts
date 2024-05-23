@@ -52,15 +52,50 @@ async function main() {
 
   const admin = (await ethers.getSigners())[0];
   const breeder = (await ethers.getSigners())[1];
+  const breeder2 = (await ethers.getSigners())[2];
+  const transporter = (await ethers.getSigners())[3];
+  const transporter2 = (await ethers.getSigners())[4];
+  const slaughterer = (await ethers.getSigners())[5];
+  const slaughterer2 = (await ethers.getSigners())[6];
+  const manufacturer = (await ethers.getSigners())[7];
+  const manufacturer2 = (await ethers.getSigners())[8];
 
   const availableRoles = [
+    {
+      role: "ADMIN",
+      wallet: admin,
+    },
     {
       role: "BREEDER",
       wallet: breeder,
     },
     {
-      role: "ADMIN",
-      wallet: admin,
+      role: "BREEDER",
+      wallet: breeder2,
+    },
+    {
+      role: "TRANSPORTER",
+      wallet: transporter,
+    },
+    {
+      role: "TRANSPORTER",
+      wallet: transporter2,
+    },
+    {
+      role: "SLAUGHTERER",
+      wallet: slaughterer,
+    },
+    {
+      role: "SLAUGHTERER",
+      wallet: slaughterer2,
+    },
+    {
+      role: "MANUFACTURER",
+      wallet: manufacturer,
+    },
+    {
+      role: "MANUFACTURER",
+      wallet: manufacturer2,
     },
   ];
 

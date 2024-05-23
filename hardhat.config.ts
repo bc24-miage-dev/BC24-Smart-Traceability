@@ -15,6 +15,13 @@ const config: HardhatUserConfig = {
       accounts: [
         process.env.ADMIN_PRIVATE_KEY,
         process.env.BREEDER_PRIVATE_KEY,
+        process.env.BREEDER2_PRIVATE_KEY,
+        process.env.TRANSPORTER1_PRIVATE_KEY,
+        process.env.TRANSPORTER2_PRIVATE_KEY,
+        process.env.SLAUGHTERER1_PRIVATE_KEY,
+        process.env.SLAUGHTERER2_PRIVATE_KEY,
+        process.env.MANUFACTURER1_PRIVATE_KEY,
+        process.env.MANUFACTURER2_PRIVATE_KEY,
       ],
       gasPrice: 0,
       gas: 0x1ffffffffffffe,
