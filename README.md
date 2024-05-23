@@ -15,10 +15,13 @@ npm test
 ```
 
 ## Pre deployment
-Make sure to add at leas the admin private key before deplying the contract. 
+Copy the `.env-template` and rename it to `.env`
+
+Make sure to add at least the admin private key before deplying the contract. 
 This address is the owner of the contract. 
 
 The remaining privat keys will be used in the GUI to test. So add at your leasure. 
+
 
 ## Deploying the contract
 
