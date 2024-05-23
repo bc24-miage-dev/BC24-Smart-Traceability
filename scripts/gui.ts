@@ -10,11 +10,45 @@ function askQuestion(query: string): Promise<string> {
   return new Promise((resolve) => rl.question(query, resolve));
 }
 
-async function main() {
-  const ContractFactory = await ethers.getContractFactory("BC24_Update");
-  const contractAddress = "0xa9ECbe3F9600f9bF3ec88a428387316714ac95a0";
+let listenerAdded = false;
+let transferSingleListenerAdded = false;
 
-  const instance = ContractFactory.attach(contractAddress);
+let contractExists = false;
+let instance: any;
+
+async function main() {
+  if (!contractExists) {
+    const ContractFactory = await ethers.getContractFactory("BC24_Update");
+    const contractAddress = "0xa9ECbe3F9600f9bF3ec88a428387316714ac95a0";
+
+    instance = ContractFactory.attach(contractAddress);
+    contractExists = true;
+  }
+
+  if (!listenerAdded) {
+    instance.on("ResourceMetaDataChangedEvent", (tokenId, metaData, caller) => {
+      console.log(
+        `ResourceMetaDataChangedEvent: TokenId: ${tokenId}, MetaData: ${metaData}, Caller: ${caller}`
+      );
+    });
+
+    instance.on("TransferSingle", (operator, from, to, id, value, event) => {
+      console.log(
+        `TransferSingle: operator=${operator}, from=${from}, to=${to}, id=${id}, value=${value}`
+      );
+    });
+
+    instance.on(
+      "ResourceCreatedEvent",
+      (tokenId, ressourceName, message, caller) => {
+        console.log(
+          `ResourceCreatedEvent: TokenId: ${tokenId}, ResourceName: ${ressourceName}, Message: ${message}, Caller: ${caller}`
+        );
+      }
+    );
+
+    listenerAdded = true;
+  }
 
   const admin = (await ethers.getSigners())[0];
   const breeder = (await ethers.getSigners())[1];
@@ -49,7 +83,7 @@ async function main() {
       return;
     }
     const action = await askQuestion(
-      "What would you like to do? (mint/transfer/exit/meta): "
+      "What would you like to do? (mint/oneToMany/change/transfer/restart): "
     );
 
     if (action.toLowerCase() === "mint") {
@@ -133,8 +167,7 @@ async function main() {
           }
         );
 
-      const transactionReceit = await transaction.wait();
-      console.log(transactionReceit.logs);
+      await transaction.wait();
 
       main(); // Restart the main function
     } else if (action.toLowerCase() === "transfer") {
@@ -174,29 +207,54 @@ async function main() {
           }
         );
 
-      const transactionReceit = await transaction.wait();
-      console.log(transactionReceit.logs);
+      await transaction.wait();
 
       main(); // Restart the main function
-    } else if (action.toLowerCase() === "exit") {
-      console.log("Exiting...");
-      rl.close();
-    } else if (action.toLowerCase() === "meta") {
-      const eventName = instance.filters.ResourceMetaDataChangedEvent(); // Replace with your event name
-      const latestBlockNumber = await ethers.provider.getBlockNumber();
-      const blocksPerBatch = 1000; // Adjust this number based on your Ethereum node's limit
-      const startBlock = 0; // Replace with the block number where your contract was deployed
+    } else if (action.toLowerCase() === "change") {
+      const tokenId = parseInt(
+        await askQuestion("Enter the token ID you want to change: "),
+        10
+      );
 
-      for (let i = startBlock; i <= latestBlockNumber; i += blocksPerBatch) {
-        const endBlock = Math.min(i + blocksPerBatch - 1, latestBlockNumber);
-        const events = await instance.queryFilter(eventName, i, endBlock);
+      const metaData = await askQuestion(
+        "Enter the new metadata for the resource: "
+      );
 
-        events.forEach((event, index) => {
-          console.log("************* Event", index + 1 + " *************");
-          console.log(event.args);
+      const transaction = await instance
+        .connect(selctedRole)
+        .setMetaData(tokenId, JSON.stringify(metaData), {
+          maxPriorityFeePerGas: 0,
+          maxFeePerGas: 0,
         });
-      }
-      main();
+
+      await transaction.wait();
+
+      main(); // Restart the main function
+    } else if (action.toLowerCase() === "oneToMany") {
+      const tokenId = parseInt(
+        await askQuestion(
+          "Enter the token ID you want to create resources from: "
+        ),
+        10
+      );
+
+      const metaData = await askQuestion(
+        "Enter the new metadata for the new dresource: "
+      );
+
+      const transaction = await instance
+        .connect(selctedRole)
+        .mintOneToMany(tokenId, JSON.stringify(metaData), {
+          maxPriorityFeePerGas: 0,
+          maxFeePerGas: 0,
+        });
+
+      await transaction.wait();
+
+      main(); // Restart the main function
+    } else if (action.toLowerCase() === "restart") {
+      console.log("Exiting...");
+      main(); // Restart the main function
     } else {
       console.log("Invalid action.");
       main(); // Restart the main function
