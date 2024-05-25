@@ -8,10 +8,13 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "hardhat/console.sol";
 
-contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
+contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
+
+    string public name = "BC24";
+    string public symbol = "BC24";
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    // Event to log the minting of a new ressource
     event ResourceCreatedEvent(
         uint256 tokenId,
         string ressourceName,
@@ -25,30 +28,29 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         address caller
     );
 
-    // Holds the metadata of a ressource
-    // data: the metadata of the ressource in string format
-    // ressourceName: the name of the ressource. Automattically taken from the template
-    // usedToCreate: an array of the tokenIds used to create this ressource (TRACABILITY OF EXACT TOKENS USED TO CREATE A NEW ONE)
+    struct Data {
+        string required_role;
+        string dataString;
+        address lastModifiedBy;
+        uint256 lastModifiedAt;
+    }
 
     struct MetaData {
-        string data;
+        Data[] data;
         uint256 resourceId;
         string ressourceName;
         uint256[] ingredients;
     }
 
-    // Holds the template of a ressource.
-    // This makes the whole system more modular and allows for easy addition of new ressources
-    // TODO: Add a way to add new ressources to the system
     struct ResourceTemplate {
         uint256 ressource_id;
         string ressource_name;
-        uint256[] ressources_needed;
-        uint256[] ressources_needed_amounts;
-        uint256 initialAmountFromTemplate;
+        uint256[] needed_resources;
+        uint256[] needed_resources_amounts;
+        uint256 initial_amount_minted;
         string required_role;
-        uint256[] producesResources;
-        uint256[] producesResourcesAmounts;
+        uint256[] produces_resources;
+        uint256[] produces_resources_amounts;
     }
 
     // ResourceId to ResourceTemplate mapping
@@ -57,17 +59,20 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     // TokenId to MetaData mapping
     mapping(uint256 => MetaData) public metaData;
 
-    // TokenId to Owner mapping
-    mapping(uint256 => address) public tokenOwners;
-
     // ResourceId to TokenId mapping
     // This is needed if we want to know which tokens are of a certain type in the minining and bruning process
     mapping(uint => uint[]) public tokensByResourceType;
 
-    // TokenId counter
-    uint256 tokenId = 65;
+    // User to Role mapping
+    mapping(address => string) public userRoles;
 
-    constructor(ResourceTemplate[] memory _ressourceTemplates) ERC1155("") {
+    // TokenId counter
+    uint256 globalTokenId = 65;
+
+    constructor(
+        address admin,
+        ResourceTemplate[] memory _ressourceTemplates
+    ) ERC1155("") {
         require(
             _ressourceTemplates.length > 0,
             "At least one ressource template is required"
@@ -80,7 +85,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             );
         }
 
-        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, admin);
 
         // Populate the resourceTemplates mapping
         for (uint i = 0; i < _ressourceTemplates.length; i++) {
@@ -90,25 +95,65 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         }
     }
 
+    function uri(
+        uint256 _tokenID
+    ) public view override returns (string memory) {
+        string memory tokenURI = string(
+            abi.encodePacked(
+                "https://storage.googleapis.com/bc24/",
+                Strings.toString(metaData[_tokenID].resourceId),
+                ".json"
+            )
+        );
+        return tokenURI;
+    }
+
     function giveUserRole(address account, string memory role) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can assign role");
         _grantRole(keccak256(abi.encode(role)), account);
+        userRoles[account] = role;
     }
 
     function getMetaData(uint256 id) public view returns (MetaData memory) {
         return metaData[id];
     }
 
-    function setMetaData(uint256 id, string memory _metaData) public {
+    function setMetaData(uint256 tokenId, string memory _metaData) public {
         require(
-            hasRole(ADMIN_ROLE, msg.sender) || tokenOwners[id] == msg.sender,
+            hasRole(ADMIN_ROLE, msg.sender) ||
+                balanceOf(msg.sender, tokenId) > 0,
             "Only admin or owner can set metadata"
         );
 
-        MetaData storage meta = metaData[tokenId];
-        meta.data = _metaData;
+        MetaData storage metaDataArray = metaData[tokenId];
+        Data[] storage data = metaDataArray.data;
+        bool metaDataForRoleDoesNotExists = true;
 
-        emit ResourceMetaDataChangedEvent(id, meta, msg.sender);
+        for (uint i = 0; i < data.length; i++) {
+            if (
+                hasRole(
+                    keccak256(abi.encode(data[i].required_role)),
+                    msg.sender
+                )
+            ) {
+                data[i].dataString = _metaData;
+                data[i].lastModifiedBy = msg.sender;
+                data[i].lastModifiedAt = block.timestamp;
+                metaDataForRoleDoesNotExists = false;
+            }
+        }
+
+        if (metaDataForRoleDoesNotExists) {
+            Data memory newDataOfRole = Data({
+                dataString: _metaData,
+                required_role: userRoles[msg.sender],
+                lastModifiedBy: msg.sender,
+                lastModifiedAt: block.timestamp
+            });
+            data.push(newDataOfRole);
+        }
+
+        emit ResourceMetaDataChangedEvent(tokenId, metaDataArray, msg.sender);
     }
 
     function mintOneToMany(
@@ -124,7 +169,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             metaData[producerToken].resourceId
         ];
 
-        uint256[] memory produces = resourceTemplate.producesResources;
+        uint256[] memory produces = resourceTemplate.produces_resources;
 
         for (uint i = 0; i < produces.length; i++) {
             ResourceTemplate
@@ -134,23 +179,30 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
             for (
                 uint j = 0;
-                j < resourceTemplate.producesResourcesAmounts[i];
+                j < resourceTemplate.produces_resources_amounts[i];
                 j++
             ) {
                 _mint(
                     msg.sender,
-                    tokenId,
-                    producedResourceTemplate.initialAmountFromTemplate,
+                    globalTokenId,
+                    producedResourceTemplate.initial_amount_minted,
                     ""
                 );
-                MetaData storage meta = metaData[tokenId];
+                MetaData storage meta = metaData[globalTokenId];
                 meta.resourceId = producedResourceTemplate.ressource_id;
                 meta.ressourceName = producedResourceTemplate.ressource_name;
                 meta.ingredients.push(producerToken);
-                meta.data = _metaData;
+                meta.data.push(
+                    Data({
+                        dataString: _metaData,
+                        required_role: producedResourceTemplate.required_role,
+                        lastModifiedBy: msg.sender,
+                        lastModifiedAt: block.timestamp
+                    })
+                );
 
                 emit ResourceCreatedEvent(
-                    tokenId,
+                    globalTokenId,
                     producedResourceTemplate.ressource_name,
                     string(
                         abi.encodePacked(
@@ -162,9 +214,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     msg.sender
                 );
 
-                emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+                emit ResourceMetaDataChangedEvent(
+                    globalTokenId,
+                    meta,
+                    msg.sender
+                );
 
-                tokenId++;
+                globalTokenId++;
             }
         }
 
@@ -216,34 +272,40 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             );
             _mint(
                 msg.sender,
-                tokenId,
-                resourceTemplate.initialAmountFromTemplate,
+                globalTokenId,
+                resourceTemplate.initial_amount_minted,
                 ""
             );
 
             // Create the unique metadata for each newly minted resource
-            MetaData storage meta = metaData[tokenId];
-            meta.data = _metaData;
+            MetaData storage meta = metaData[globalTokenId];
+
             meta.resourceId = resourceTemplate.ressource_id;
             meta.ressourceName = resourceTemplate.ressource_name;
             meta.ingredients = burntIngredients;
+            meta.data.push(
+                Data({
+                    dataString: _metaData,
+                    required_role: resourceTemplate.required_role,
+                    lastModifiedBy: msg.sender,
+                    lastModifiedAt: block.timestamp
+                })
+            );
 
-            // Update the tokenOwners mapping
-            tokenOwners[tokenId] = msg.sender;
             // Add the tokenId to the resource type mapping
-            tokensByResourceType[resourceId].push(tokenId);
+            tokensByResourceType[resourceId].push(globalTokenId);
 
             // Emit the ResourceEvent
             emit ResourceCreatedEvent(
-                tokenId,
+                globalTokenId,
                 meta.ressourceName,
                 "New ressource created",
                 msg.sender
             );
 
-            emit ResourceMetaDataChangedEvent(tokenId, meta, msg.sender);
+            emit ResourceMetaDataChangedEvent(globalTokenId, meta, msg.sender);
 
-            tokenId++;
+            globalTokenId++;
         }
     }
 
@@ -253,10 +315,10 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         uint256[] memory ingredients
     ) public view returns (bool) {
         bool returnValue = true;
-        for (uint i = 0; i < template.ressources_needed.length; i++) {
+        for (uint i = 0; i < template.needed_resources.length; i++) {
             // get the needed resource ids from the template to create the new ressource
-            uint256 neededResourceId = template.ressources_needed[i];
-            uint256 neededAmount = template.ressources_needed_amounts[i];
+            uint256 neededResourceId = template.needed_resources[i];
+            uint256 neededAmount = template.needed_resources_amounts[i];
 
             uint256 totalResourceBalance = 0;
 
@@ -282,7 +344,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     string(
                         abi.encodePacked(
                             "\nYou do not have the required resource (",
-                            ressourceTemplates[template.ressources_needed[i]]
+                            ressourceTemplates[template.needed_resources[i]]
                                 .ressource_name,
                             ") to perform this action.\n",
                             "You have: ",
@@ -309,13 +371,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     ) public returns (uint256[] memory) {
         uint256[] memory burntIngredients = new uint256[](ingredients.length);
         uint256 burntIngredientsCount = 0;
-        for (uint i = 0; i < template.ressources_needed.length; i++) {
+        for (uint i = 0; i < template.needed_resources.length; i++) {
             // get the current resource id from the template to create the new ressource
-            uint256 neededResourceId = template.ressources_needed[i];
+            uint256 neededResourceId = template.needed_resources[i];
 
             // calculate the needed amount of the resource
             // for example: if the template says we need 20 (20g) of beef shoulder to create a new ressource and the quantity is 5, we need 100 (100g) of beef shoulder
-            uint256 neededAmount = template.ressources_needed_amounts[i] *
+            uint256 neededAmount = template.needed_resources_amounts[i] *
                 quantity;
 
             for (uint j = 0; j < ingredients.length; j++) {
