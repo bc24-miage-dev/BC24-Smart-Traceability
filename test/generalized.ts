@@ -7,16 +7,25 @@ describe("BC24", function () {
 
   let defaultAdmin: any;
   let breeder: any;
+  let breeder2 : any;
   let slaughterer: any;
+  let slaughterer2: any;
   let transporter: any;
-  let manufactuerer: any;
+  let transporter2: any;
+  let manufacturer: any;  
+  let manufacturer2: any;
 
   this.beforeEach(async function () {
     defaultAdmin = (await ethers.getSigners())[0];
     breeder = (await ethers.getSigners())[1];
-    slaughterer = (await ethers.getSigners())[2];
-    manufactuerer = (await ethers.getSigners())[3];
-    transporter = (await ethers.getSigners())[4];
+    breeder2 = (await ethers.getSigners())[2];
+    transporter = (await ethers.getSigners())[3];
+    transporter2 = (await ethers.getSigners())[4];
+    slaughterer = (await ethers.getSigners())[5];
+    slaughterer2 = (await ethers.getSigners())[6];
+    manufacturer = (await ethers.getSigners())[7];
+    manufacturer2 = (await ethers.getSigners())[8];
+
     /* This it the general setup needed for all the contracts*/
     /* If a new contract is put into an interface it needs to be added likewise in the SetupService */
 
@@ -38,7 +47,98 @@ describe("BC24", function () {
 
     await bc24Contract
       .connect(defaultAdmin)
-      .giveUserRole(manufactuerer.address, "MANUFACTURER");
+      .giveUserRole(manufacturer.address, "MANUFACTURER");
+  });
+
+  it("should assign BREEDER role correctly", async function () {
+    const breederRole = await bc24Contract.userRoles(breeder.address);
+    expect(breederRole).to.equal("BREEDER");
+  });
+
+  it("should assign TRANSPORTER role correctly", async function () {
+    const transporterRole = await bc24Contract.userRoles(transporter.address);
+    expect(transporterRole).to.equal("TRANSPORTER");
+  });
+
+  it("should assign SLAUGHTERER role correctly", async function () {
+    const slaughtererRole = await bc24Contract.userRoles(slaughterer.address);
+    expect(slaughtererRole).to.equal("SLAUGHTERER");
+  });
+
+  it("should assign MANUFACTURER role correctly", async function () {
+    const manufacturerRole = await bc24Contract.userRoles(manufacturer.address);
+    expect(manufacturerRole).to.equal("MANUFACTURER");
+  });
+
+  it("should not allow non-admin to assign roles", async function () {
+    await expect(
+      bc24Contract.connect(breeder).giveUserRole(breeder2.address, "BREEDER")
+    ).to.be.revertedWith("Only admin can assign role");
+  });
+
+  it("should allow admin to assign different to one", async function () {
+    // Attribuer initialement un rôle différent à breeder2
+    await bc24Contract.connect(defaultAdmin).giveUserRole(breeder2.address, "TRANSPORTER");
+    let initialRole = await bc24Contract.userRoles(breeder2.address);
+    expect(initialRole).to.equal("TRANSPORTER");
+
+    // set un autre rôle a breeder2
+    await bc24Contract.connect(defaultAdmin).giveUserRole(breeder2.address, "BREEDER");
+    const changedRole = await bc24Contract.userRoles(breeder2.address);
+    expect(changedRole).to.equal("BREEDER");
+  });
+
+  it("should allow BREEDER to mint Sheep resource", async function () {
+    await expect(
+      bc24Contract.connect(breeder).mintRessource(1, 1, "Sheep metadata", [])
+    ).to.emit(bc24Contract, "ResourceCreatedEvent");
+
+    const breederBalance = await bc24Contract.balanceOf(breeder.address, 65);
+    expect(breederBalance).to.equal(1);
+  });
+
+  it("should not allow TRANSPORTER to mint Sheep resource", async () => {
+    const jsonObject = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+    await expect(
+      bc24Contract.connect(transporter).mintRessource(1, 1, JSON.stringify(jsonObject), [])
+    ).to.be.revertedWith("Caller does not have the right to use the process");
+  });
+
+
+  it("should allow BREEDER to set metadata", async function () {
+    const jsonObject = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+    await bc24Contract.connect(breeder).mintRessource(1, 1, JSON.stringify(jsonObject), []);
+    const tokenId=65
+    const newMetaData = "New Metadata for Breeder";
+    await bc24Contract.connect(breeder).setMetaData(tokenId, newMetaData);
+
+    const metaData = await bc24Contract.getMetaData(tokenId);
+    expect(metaData.data[0].dataString).to.equal(newMetaData);
+  });
+
+  it("should not allow TRANSPORTER to set metadata", async function () {
+    const jsonObject = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+    await bc24Contract.connect(breeder).mintRessource(1, 1, JSON.stringify(jsonObject), []);
+    const tokenId=65
+    const newMetaData = "New Metadata for Transporter";
+    expect(bc24Contract.connect(transporter).setMetaData(tokenId, newMetaData)).to.be.revertedWith(
+      "Only admin or owner can set metadata"
+    );
   });
 
   it("test breed", async () => {
@@ -317,7 +417,7 @@ describe("BC24", function () {
       .connect(slaughterer)
       .safeTransferFrom(
         slaughterer.address,
-        manufactuerer.address,
+        manufacturer.address,
         sheepCarcasTokenId,
         1,
         "0x"
@@ -328,7 +428,7 @@ describe("BC24", function () {
       .connect(slaughterer)
       .safeTransferFrom(
         slaughterer.address,
-        manufactuerer.address,
+        manufacturer.address,
         beefCarcasTokenId,
         1,
         "0x"
@@ -336,14 +436,14 @@ describe("BC24", function () {
 
     // create products form carcasses
     const producesSheepCarcassResources = await bc24Contract
-      .connect(manufactuerer)
+      .connect(manufacturer)
       .mintOneToMany(
         sheepCarcasTokenId,
         "Butchering the first sheep real good."
       );
 
     const producesBeefCarcassResources = await bc24Contract
-      .connect(manufactuerer)
+      .connect(manufacturer)
       .mintOneToMany(beefCarcasTokenId, "Butchering this beef real good.");
 
     let sheepShoulderTokenId = [];
@@ -370,7 +470,7 @@ describe("BC24", function () {
     // create X patties
     const x = 51;
     const mergezPatty = await bc24Contract
-      .connect(manufactuerer)
+      .connect(manufacturer)
       .mintRessource(7, x, "Mergez Patty", [
         ...sheepShoulderTokenId,
         ...beefShoulderTokenId,
@@ -380,20 +480,20 @@ describe("BC24", function () {
 
     expect(
       await bc24Contract
-        .connect(manufactuerer)
-        .balanceOf(manufactuerer.address, beefShoulderTokenId[0])
+        .connect(manufacturer)
+        .balanceOf(manufacturer.address, beefShoulderTokenId[0])
     ).to.equal(3500 - x * 50);
 
     expect(
       await bc24Contract
-        .connect(manufactuerer)
-        .balanceOf(manufactuerer.address, sheepShoulderTokenId[0])
+        .connect(manufacturer)
+        .balanceOf(manufacturer.address, sheepShoulderTokenId[0])
     ).to.equal(2500 - (x - 1) * 50);
 
     expect(
       await bc24Contract
-        .connect(manufactuerer)
-        .balanceOf(manufactuerer.address, sheepShoulderTokenId[1])
+        .connect(manufacturer)
+        .balanceOf(manufacturer.address, sheepShoulderTokenId[1])
     ).to.equal(2500 - (x - 2500 / 50) * 50);
   });
 
