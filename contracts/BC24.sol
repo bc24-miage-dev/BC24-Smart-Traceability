@@ -160,6 +160,7 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         uint256 producerToken,
         string memory _metaData
     ) public {
+        
         require(
             balanceOf(msg.sender, producerToken) > 0,
             "This Resource has been already been used."
@@ -170,16 +171,21 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         ];
 
         uint256[] memory produces = resourceTemplate.produces_resources;
-
+        uint256[] memory producesAmount = resourceTemplate.produces_resources_amounts;
+        
         for (uint i = 0; i < produces.length; i++) {
-            ResourceTemplate
-                storage producedResourceTemplate = ressourceTemplates[
-                    produces[i]
-                ];
+            ResourceTemplate storage producedResourceTemplate = ressourceTemplates[produces[i]];
+            require(
+                hasRole(
+                    keccak256(abi.encode(producedResourceTemplate.required_role)),
+                    msg.sender
+                ),
+                "Caller does not have the required role to mint new tokens"
+            );
 
             for (
                 uint j = 0;
-                j < resourceTemplate.produces_resources_amounts[i];
+                j < producesAmount[i];
                 j++
             ) {
                 _mint(
