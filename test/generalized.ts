@@ -286,6 +286,62 @@ it("should mint multiple tokens from a single producer token using mintOneToMany
   //     bc24Contract.connect(breeder).mintRessource(0, 1, JSON.stringify(jsonObject), [])
   //   ).to.be.revertedWith("Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system.");
   // });
+  
+it("test all chain complex recipe", async function () {
+  let sheepId = 1, cowId = 2, chickenId = 5;
+  let sheepCarcassId = 3, cowCarcassId = 4, chickenCarcassId = 6;
+  let sheepShoulderId = 20, cowHipId = 31, chickenBreastsId = 42;
+  let complexRecipeId = 50;
+
+  // Step 1: Breeder mints Sheep, Cow, and Chicken
+  await bc24Contract.connect(breeder).mintRessource(sheepId, 1, "Sheep metadata",[]);
+  await bc24Contract.connect(breeder).mintRessource(cowId, 1, "Cow metadata",[]);
+  await bc24Contract.connect(breeder).mintRessource(chickenId, 1, "Chicken metadata",[]);
+
+  // Verify initial mint
+  expect(await bc24Contract.balanceOf(breeder.address, 65)).to.equal(1);
+  expect(await bc24Contract.balanceOf(breeder.address, 66)).to.equal(1);
+  expect(await bc24Contract.balanceOf(breeder.address, 67)).to.equal(1);
+
+  //transfer to slaughterer
+
+  await bc24Contract.connect(breeder).safeTransferFrom(breeder.address, slaughterer.address, 65, 1, "0x");
+  await bc24Contract.connect(breeder).safeTransferFrom(breeder.address, slaughterer.address, 66, 1, "0x");
+  await bc24Contract.connect(breeder).safeTransferFrom(breeder.address, slaughterer.address, 67, 1, "0x");
+
+  // Step 2: Slaughterer transforms Sheep, Cow, and Chicken into carcasses
+  
+  await bc24Contract.connect(slaughterer).mintRessource(sheepCarcassId, 1, "Sheep carcass metadata",[65]);
+  await bc24Contract.connect(slaughterer).mintRessource(cowCarcassId, 1, "Cow carcass metadata", [66]);
+  await bc24Contract.connect(slaughterer).mintRessource(chickenCarcassId, 1, "Chicken carcass metadata", [67]);
+  // transfer slaughterer to manufacturer
+
+  await bc24Contract.connect(slaughterer).safeTransferFrom(slaughterer.address, manufacturer.address, 68, 1, "0x");
+  await bc24Contract.connect(slaughterer).safeTransferFrom(slaughterer.address, manufacturer.address, 69, 1, "0x");
+  await bc24Contract.connect(slaughterer).safeTransferFrom(slaughterer.address, manufacturer.address, 70, 1, "0x");
+
+  // Step 3: Manufacturer transforms carcasses into specific parts
+  await bc24Contract.connect(manufacturer).mintOneToMany(68, "Sheep shoulder metadata");
+  await bc24Contract.connect(manufacturer).mintOneToMany(69, "Cow hip metadata");
+  await bc24Contract.connect(manufacturer).mintOneToMany(70, "Chicken breasts metadata");
+  const sheepShoulderBalanceB4 = await bc24Contract.balanceOf(manufacturer.address, 71);
+  const cowHipBalanceB4 = await bc24Contract.balanceOf(manufacturer.address, 80);
+  const chickenBreastsBalanceB4 = await bc24Contract.balanceOf(manufacturer.address, 89);
+  const complexRecipeBalanceB4 = await bc24Contract.balanceOf(manufacturer.address, 95);
+  // Step 4: Manufacturer creates the complex recipe
+  await bc24Contract.connect(manufacturer).mintRessource(complexRecipeId, 1, "Complex Recipe metadata", [71,80,89]);
+
+  // Verify the balances of the newly minted tokens
+  const sheepShoulderBalance = await bc24Contract.balanceOf(manufacturer.address, 71);
+  const cowHipBalance = await bc24Contract.balanceOf(manufacturer.address, 80);
+  const chickenBreastsBalance = await bc24Contract.balanceOf(manufacturer.address, 89);
+  const complexRecipeBalance = await bc24Contract.balanceOf(manufacturer.address, 95);
+  // console.log("\n sheepShoulderBalance :" + sheepShoulderBalance)
+  // console.log("\n cowHipBalance :" + cowHipBalance)
+  // console.log("\n chickenBreastsBalance :" + chickenBreastsBalance)
+  // console.log("\n complexRecipeBalance :" + complexRecipeBalance)
+
+});
   it("test breed", async () => {
     const jsonObject = {
       placeOfOrigin: "Random Place",
