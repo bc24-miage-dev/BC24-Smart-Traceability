@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
