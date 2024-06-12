@@ -1,6 +1,10 @@
 import { ethers } from "hardhat";
 import readline from "readline";
 
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -18,8 +22,8 @@ let instance: any;
 
 async function main() {
   if (!contractExists) {
-    const ContractFactory = await ethers.getContractFactory("BC24_Update");
-    const contractAddress = "0xa9ECbe3F9600f9bF3ec88a428387316714ac95a0";
+    const ContractFactory = await ethers.getContractFactory("BC24");
+    const contractAddress = process.env.CONTRACT_ADDRESS!;
 
     instance = ContractFactory.attach(contractAddress);
     contractExists = true;
@@ -118,10 +122,32 @@ async function main() {
       return;
     }
     const action = await askQuestion(
-      "What would you like to do? (mint/oneToMany/change/transfer/restart): "
+      "What would you like to do? (giveRole/mint/oneToMany/change/transfer/restart): "
     );
 
-    if (action.toLowerCase() === "mint") {
+    if (action === "giveRole") {
+      console.log("Available roles: ");
+      availableRoles.forEach((role, index) => {
+        console.log(`${index + 1}. ${role.role}`);
+      });
+
+      const selectedReceiverIndex = parseInt(
+        await askQuestion("Select the receiver by number: "),
+        10
+      );
+
+      const receiver = availableRoles[selectedReceiverIndex - 1].wallet;
+
+      const role = await askQuestion("Enter the role you want to give: ");
+
+      const transaction = await instance
+        .connect(selctedRole)
+        .giveUserRole(receiver.address, role);
+
+      await transaction.wait();
+
+      main(); // Restart the main function
+    } else if (action.toLowerCase() === "mint") {
       console.log("Available resources:");
       ressourceTemplates.forEach((resource, index) => {
         console.log(`${index + 1}. ${resource.ressource_name}`);
@@ -189,20 +215,18 @@ async function main() {
         "Enter the metadata for the resource: "
       );
 
-      const transaction = await instance
-        .connect(selctedRole)
-        .mintRessource(
-          selectedResourceIndex,
-          quantity,
-          JSON.stringify(metaData),
-          selectedIngredients,
-          {
+      const transaction = await instance.connect(selctedRole).mintRessource(
+        selectedResourceIndex,
+        quantity,
+        JSON.stringify(metaData),
+        selectedIngredients
+        /*  {
             maxPriorityFeePerGas: 0,
             maxFeePerGas: 0,
-          }
-        );
-
-      await transaction.wait();
+          } */
+      );
+      const logs = await transaction.wait();
+      console.log(logs.logs);
 
       main(); // Restart the main function
     } else if (action.toLowerCase() === "transfer") {
@@ -265,7 +289,7 @@ async function main() {
       await transaction.wait();
 
       main(); // Restart the main function
-    } else if (action.toLowerCase() === "oneToMany") {
+    } else if (action.toLowerCase() === "onetomany") {
       const tokenId = parseInt(
         await askQuestion(
           "Enter the token ID you want to create resources from: "

@@ -14,27 +14,6 @@ async function main() {
   console.log(
     `Contract deployed to ${await instance.getAddress()} by ${admin.address}`
   );
-
-  /*   console.log("Give roles to users");
-  await instance
-    .connect(admin_wallet)
-    .giveUserRole(breeder_wallet.address, "BREEDER");
-
-  console.log("Mint sheep");
-  const jsonObject = {
-    placeOfOrigin: "Random Place",
-    dateOfBirth: Math.floor(Math.random() * 1000000000),
-    gender: Math.random() < 0.5 ? "Male" : "Female",
-    weight: Math.random() * 100,
-  };
-
-  const mutton = await instance
-    .connect(breeder_wallet)
-    .mintRessource(1, 1, JSON.stringify(jsonObject), []);
-
-  const muttonReceipt = await mutton.wait();
-
-  console.log(muttonReceipt); */
 }
 
 // We recommend this pattern to be able to use async/await everywhere

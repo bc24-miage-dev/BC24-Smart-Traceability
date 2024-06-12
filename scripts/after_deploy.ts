@@ -1,10 +1,9 @@
 import { ethers, network } from "hardhat";
-import { ressourceTemplates } from "../resource_templates/templates";
 
 async function main() {
-  const ContractFactory = await ethers.getContractFactory("BC24_Update");
+  const ContractFactory = await ethers.getContractFactory("BC24");
 
-  const contractAddress = "0xa9ECbe3F9600f9bF3ec88a428387316714ac95a0";
+  const contractAddress = process.env.CONTRACT_ADDRESS!;
 
   const admin = (await ethers.getSigners())[0];
   const breeder = (await ethers.getSigners())[1];
@@ -15,16 +14,28 @@ async function main() {
 
   console.log("Give roles to users");
 
-  /* const roleTransaction = await instance
+  const roleTransaction = await instance
     .connect(admin)
-    .giveUserRole(breeder.address, "BREEDER", {
-      maxPriorityFeePerGas: 0,
-      maxFeePerGas: 0,
-    });
+    .giveUserRole(breeder.address, "BREEDER", {});
 
   const roleReceipt = await roleTransaction.wait();
   console.log(roleReceipt.logs);
-  console.log("Mint sheep");
+
+  const jsonObject = {
+    placeOfOrigin: "Random Place",
+    dateOfBirth: Math.floor(Math.random() * 1000000000),
+    gender: Math.random() < 0.5 ? "Male" : "Female",
+    weight: Math.random() * 100,
+  };
+
+  const mutton = await instance
+    .connect(breeder)
+    .mintRessource(1, 1, JSON.stringify(jsonObject), [], {});
+
+  const muttonReceipt = await mutton.wait();
+  console.log(muttonReceipt.logs);
+
+  /*console.log("Mint sheep");
 
   const jsonObject = {
     placeOfOrigin: "Random Place",

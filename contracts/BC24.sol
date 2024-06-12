@@ -8,8 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "hardhat/console.sol";
 
-contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
-
+contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
     string public name = "BC24";
     string public symbol = "BC24";
 
@@ -53,8 +52,11 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         uint256[] produces_resources_amounts;
     }
 
-    // ResourceId to ResourceTemplate mapping
-    mapping(uint256 => ResourceTemplate) public ressourceTemplates;
+    // ResourceId to ResourceTemplate mapping for easy access
+    mapping(uint256 => ResourceTemplate) private ressourceTemplates;
+
+    // Resource array to store all the resources
+    ResourceTemplate[] private allRessourceTemplates;
 
     // TokenId to MetaData mapping
     mapping(uint256 => MetaData) public metaData;
@@ -89,29 +91,21 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
 
         // Populate the resourceTemplates mapping
         for (uint i = 0; i < _ressourceTemplates.length; i++) {
+            allRessourceTemplates.push(_ressourceTemplates[i]);
             ressourceTemplates[
                 _ressourceTemplates[i].ressource_id
             ] = _ressourceTemplates[i];
         }
     }
 
-    function uri(
-        uint256 _tokenID
-    ) public view override returns (string memory) {
-        string memory tokenURI = string(
-            abi.encodePacked(
-                "https://storage.googleapis.com/bc24/",
-                Strings.toString(metaData[_tokenID].resourceId),
-                ".json"
-            )
-        );
-        return tokenURI;
-    }
-
     function giveUserRole(address account, string memory role) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can assign role");
         _grantRole(keccak256(abi.encode(role)), account);
         userRoles[account] = role;
+    }
+
+    function getResourceTemplates() public view returns (ResourceTemplate[] memory) {
+        return allRessourceTemplates;
     }
 
     function getMetaData(uint256 id) public view returns (MetaData memory) {
@@ -160,7 +154,6 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         uint256 producerToken,
         string memory _metaData
     ) public {
-        
         require(
             balanceOf(msg.sender, producerToken) > 0,
             "This Resource has been already been used."
@@ -171,23 +164,25 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         ];
 
         uint256[] memory produces = resourceTemplate.produces_resources;
-        uint256[] memory producesAmount = resourceTemplate.produces_resources_amounts;
-        
+        uint256[] memory producesAmount = resourceTemplate
+            .produces_resources_amounts;
+
         for (uint i = 0; i < produces.length; i++) {
-            ResourceTemplate storage producedResourceTemplate = ressourceTemplates[produces[i]];
+            ResourceTemplate
+                storage producedResourceTemplate = ressourceTemplates[
+                    produces[i]
+                ];
             require(
                 hasRole(
-                    keccak256(abi.encode(producedResourceTemplate.required_role)),
+                    keccak256(
+                        abi.encode(producedResourceTemplate.required_role)
+                    ),
                     msg.sender
                 ),
                 "Caller does not have the required role to mint new tokens"
             );
 
-            for (
-                uint j = 0;
-                j < producesAmount[i];
-                j++
-            ) {
+            for (uint j = 0; j < producesAmount[i]; j++) {
                 _mint(
                     msg.sender,
                     globalTokenId,
@@ -319,7 +314,7 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         ResourceTemplate memory template,
         uint256 quantity,
         uint256[] memory ingredients
-    ) public view returns (bool) {
+    ) private view returns (bool) {
         bool returnValue = true;
         for (uint i = 0; i < template.needed_resources.length; i++) {
             // get the needed resource ids from the template to create the new ressource
@@ -374,7 +369,7 @@ contract BC24_Update is ERC1155, ERC1155Burnable, AccessControl {
         ResourceTemplate memory template,
         uint256 quantity,
         uint256[] memory ingredients
-    ) public returns (uint256[] memory) {
+    ) private returns (uint256[] memory) {
         uint256[] memory burntIngredients = new uint256[](ingredients.length);
         uint256 burntIngredientsCount = 0;
         for (uint i = 0; i < template.needed_resources.length; i++) {
