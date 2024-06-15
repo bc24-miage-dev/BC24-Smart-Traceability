@@ -50,6 +50,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         string required_role;
         uint256[] produces_resources;
         uint256[] produces_resources_amounts;
+        string ressource_type;
     }
 
     // ResourceId to ResourceTemplate mapping for easy access
