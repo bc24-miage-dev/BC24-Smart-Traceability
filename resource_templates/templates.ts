@@ -9,6 +9,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
+    ressource_type : "Animal"
   },
   {
 
@@ -20,6 +21,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
+    ressource_type : "Animal"
   },
 
   {
@@ -32,7 +34,9 @@ export const ressourceTemplates = [
     required_role: "SLAUGHTERER",
     produces_resources: [20, 21, 22, 23, 24],
     produces_resources_amounts: [2, 1, 1, 2, 1],
+    ressource_type : "Carcass"
   },
+
   {
     ressource_id: 5,
     ressource_name: "Chicken",
@@ -42,6 +46,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
+    ressource_type : "Animal"
   },
   {
     ressource_id: 6,
@@ -50,8 +55,20 @@ export const ressourceTemplates = [
     needed_resources_amounts: [1],
     initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
+    produces_resources: [],
+    produces_resources_amounts: [],
+    ressource_type : "Carcass"
+  },
+  {
+    ressource_id: 51,
+    ressource_name: "Chicken demi carcass",
+    needed_resources: [6],
+    needed_resources_amounts: [1],
+    initial_amount_minted: 2,
+    required_role: "SLAUGHTERER",
     produces_resources: [40, 41, 42],
     produces_resources_amounts: [2, 2, 2],
+    ressource_type : "Demi Carcass"
   },
   {
     ressource_id: 20,
@@ -62,6 +79,7 @@ export const ressourceTemplates = [
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
+    ressource_type : "Meat"
   },
   {
     ressource_id: 21,
