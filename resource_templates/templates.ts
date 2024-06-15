@@ -236,7 +236,7 @@ export const ressourceTemplates = [
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type : "Product"
+    ressource_type : "Meat"
 
   },
   {
