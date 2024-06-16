@@ -38,6 +38,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         Data[] data;
         uint256 resourceId;
         string ressourceName;
+        string ressourceType;
         uint256[] ingredients;
     }
 
@@ -193,6 +194,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                 MetaData storage meta = metaData[globalTokenId];
                 meta.resourceId = producedResourceTemplate.ressource_id;
                 meta.ressourceName = producedResourceTemplate.ressource_name;
+                meta.ressourceType = producedResourceTemplate.ressource_type;
                 meta.ingredients.push(producerToken);
                 meta.data.push(
                     Data({
@@ -284,6 +286,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
             meta.resourceId = resourceTemplate.ressource_id;
             meta.ressourceName = resourceTemplate.ressource_name;
+            meta.ressourceType = resourceTemplate.ressource_type;
             meta.ingredients = burntIngredients;
             meta.data.push(
                 Data({
