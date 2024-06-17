@@ -106,7 +106,11 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         userRoles[account] = role;
     }
 
-    function getResourceTemplates() public view returns (ResourceTemplate[] memory) {
+    function getResourceTemplates()
+        public
+        view
+        returns (ResourceTemplate[] memory)
+    {
         return allRessourceTemplates;
     }
 
@@ -156,11 +160,6 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         uint256 producerToken,
         string memory _metaData
     ) public {
-        require(
-            balanceOf(msg.sender, producerToken) > 0,
-            "This Resource has been already been used."
-        );
-
         ResourceTemplate storage resourceTemplate = ressourceTemplates[
             metaData[producerToken].resourceId
         ];
@@ -168,6 +167,16 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         uint256[] memory produces = resourceTemplate.produces_resources;
         uint256[] memory producesAmount = resourceTemplate
             .produces_resources_amounts;
+
+        require(
+            resourceTemplate.produces_resources.length > 0,
+            "This Resource does not produce any other resources."
+        );
+
+        require(
+            balanceOf(msg.sender, producerToken) > 0,
+            "This Resource has been already been used."
+        );
 
         for (uint i = 0; i < produces.length; i++) {
             ResourceTemplate
@@ -183,6 +192,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                 ),
                 "Caller does not have the required role to mint new tokens"
             );
+        }
+
+        for (uint i = 0; i < produces.length; i++) {
+            ResourceTemplate
+                storage producedResourceTemplate = ressourceTemplates[
+                    produces[i]
+                ];
 
             for (uint j = 0; j < producesAmount[i]; j++) {
                 _mint(
@@ -242,26 +258,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             resourceId
         ];
 
-        // Check if the ressourceId is valid and an actual ressource can be created from it
-        require(
-            resourceTemplate.ressource_id != 0 &&
-                keccak256(abi.encodePacked(resourceTemplate.ressource_name)) !=
-                keccak256(abi.encodePacked("")),
-            "Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system."
-        );
-
-        // Check if the caller has the right to mint the ressource
-        require(
-            hasRole(ADMIN_ROLE, msg.sender) ||
-                hasRole(
-                    keccak256(abi.encode(resourceTemplate.required_role)),
-                    msg.sender
-                ),
-            "Caller does not have the right to use the process"
-        );
-
-        // Check if the call require(
-        hasResourcesToMintItem(resourceTemplate, quantity, ingredients);
+        isValidResource(resourceTemplate, quantity, ingredients);
 
         // Mint the new ressource
         // if the ressource is not fungible (NFT), mint only one
@@ -312,6 +309,61 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
             globalTokenId++;
         }
+    }
+
+    function isValidResource(
+        ResourceTemplate memory resourceTemplate,
+        uint256 quantity,
+        uint256[] memory ingredients
+    ) private view {
+        // Check if the ressourceId is valid and an actual ressource can be created from it
+        require(
+            resourceTemplate.ressource_id != 0 &&
+                keccak256(abi.encodePacked(resourceTemplate.ressource_name)) !=
+                keccak256(abi.encodePacked("")),
+            "Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system."
+        );
+
+        // Check if the caller has the right to mint the ressource
+        require(
+            hasRole(ADMIN_ROLE, msg.sender) ||
+                hasRole(
+                    keccak256(abi.encode(resourceTemplate.required_role)),
+                    msg.sender
+                ),
+            "Caller does not have the right to use the process"
+        );
+
+        // Assuming `resources` is a mapping or an array containing all resources
+        // and `resourceTemplate` is the template of the resource you're about to mint
+
+        bool isResourceIdUnique = true;
+
+        for (uint i = 0; i < allRessourceTemplates.length; i++) {
+            // Access the produces_resources of each resource
+            uint256[] memory producesResources = allRessourceTemplates[i]
+                .produces_resources;
+
+            for (uint j = 0; j < producesResources.length; j++) {
+                if (producesResources[j] == resourceTemplate.ressource_id) {
+                    isResourceIdUnique = false;
+                    break;
+                }
+            }
+
+            if (!isResourceIdUnique) {
+                break;
+            }
+        }
+
+        // Ensure the resource_id is not present in any other resource's produces_resources
+        require(
+            isResourceIdUnique,
+            "This resource needs to be created from a producer resource."
+        );
+
+        // Check if the call require(
+        hasResourcesToMintItem(resourceTemplate, quantity, ingredients);
     }
 
     function hasResourcesToMintItem(
