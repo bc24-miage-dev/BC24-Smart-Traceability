@@ -30,6 +30,8 @@ You can target any network from your Hardhat config using:
 ```
 npx hardhat run scripts/deploy.ts --network besu
 ```
+*Important*:
+After copy the Contract Address from the CLI into the .env file to make sure you run all subsequent scripts on the right contract. 
 
 ## Interact with existing contract
 

@@ -14,7 +14,7 @@ async function main() {
 
   console.log(`Contract deployed to ${await instance.getAddress()}`);
 
-  console.log("Give roles to users");
+  console.log("Give roles to users. Please wait...");
 
   const roleTransaction = await instance
     .connect(admin)
@@ -33,6 +33,12 @@ async function main() {
     .giveUserRole(manufacturer.address, "MANUFACTURER", {});
 
   const roleReceipt3 = await roleTransaction3.wait();
+
+  console.log("Roles of users: ");
+  console.log(`Admin: ${admin.address}`);
+  console.log(`Breeder: ${breeder.address}`);
+  console.log(`Slaughterer: ${slaughterer.address}`);
+  console.log(`Manufacturer: ${manufacturer.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
