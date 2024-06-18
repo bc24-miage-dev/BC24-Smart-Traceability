@@ -2,7 +2,7 @@ import { ethers, network } from "hardhat";
 import { ressourceTemplates } from "../resource_templates/templates";
 
 async function main() {
-  const ContractFactory = await ethers.getContractFactory("BC24_Update");
+  const ContractFactory = await ethers.getContractFactory("BC24");
 
   const admin = (await ethers.getSigners())[0];
 
