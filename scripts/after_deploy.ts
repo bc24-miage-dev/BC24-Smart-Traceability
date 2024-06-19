@@ -7,6 +7,8 @@ async function main() {
 
   const admin = (await ethers.getSigners())[0];
   const breeder = (await ethers.getSigners())[1];
+  const slaughterer = (await ethers.getSigners())[2];
+  const manufacturer = (await ethers.getSigners())[3];
 
   const instance = ContractFactory.attach(contractAddress);
 
@@ -19,40 +21,18 @@ async function main() {
     .giveUserRole(breeder.address, "BREEDER", {});
 
   const roleReceipt = await roleTransaction.wait();
-  console.log(roleReceipt.logs);
 
-  const jsonObject = {
-    placeOfOrigin: "Random Place",
-    dateOfBirth: Math.floor(Math.random() * 1000000000),
-    gender: Math.random() < 0.5 ? "Male" : "Female",
-    weight: Math.random() * 100,
-  };
+  const roleTransaction2 = await instance
+    .connect(admin)
+    .giveUserRole(slaughterer.address, "SLAUGHTERER", {});
 
-  const mutton = await instance
-    .connect(breeder)
-    .mintRessource(1, 1, JSON.stringify(jsonObject), [], {});
+  const roleReceipt2 = await roleTransaction2.wait();
 
-  const muttonReceipt = await mutton.wait();
-  console.log(muttonReceipt.logs);
+  const roleTransaction3 = await instance
+    .connect(admin)
+    .giveUserRole(manufacturer.address, "MANUFACTURER", {});
 
-  /*console.log("Mint sheep");
-
-  const jsonObject = {
-    placeOfOrigin: "Random Place",
-    dateOfBirth: Math.floor(Math.random() * 1000000000),
-    gender: Math.random() < 0.5 ? "Male" : "Female",
-    weight: Math.random() * 100,
-  };
-
-  const mutton = await instance
-    .connect(breeder)
-    .mintRessource(1, 1, JSON.stringify(jsonObject), [], {
-      maxPriorityFeePerGas: 0,
-      maxFeePerGas: 0,
-    });
-
-  const muttonReceipt = await mutton.wait();
-  console.log(muttonReceipt.logs); */
+  const roleReceipt3 = await roleTransaction3.wait();
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -9,7 +9,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type : "Animal"
+    ressource_type: "Animal",
   },
 
   {
@@ -21,7 +21,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type : "Animal"
+    ressource_type: "Animal",
   },
 
   {
@@ -33,7 +33,7 @@ export const ressourceTemplates = [
     required_role: "BREEDER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type : "Animal"
+    ressource_type: "Animal",
   },
 
 // <------------------------> Carcass
@@ -158,9 +158,8 @@ export const ressourceTemplates = [
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type : "Meat"
+    ressource_type: "Meat",
   },
-
   {
     ressource_id: 55,
     ressource_name: "Sheep hip",

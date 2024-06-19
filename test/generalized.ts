@@ -145,6 +145,7 @@ describe("BC24", function () {
     await bc24Contract.connect(breeder).setMetaData(tokenId, newMetaData);
 
     const metaData = await bc24Contract.getMetaData(tokenId);
+    console.log(metaData);
     expect(metaData.data[0].dataString).to.equal(newMetaData);
   });
 
@@ -270,6 +271,17 @@ describe("BC24", function () {
     expect(slaughtererSheepBalanceAfter).to.equal(1);
   });
 
+  it("should only mintOneToMany when resource really produces other resources", async function () {
+    await bc24Contract
+      .connect(breeder)
+      .mintRessource(1, 1, "Sheep metadata", []);
+
+    await expect(
+      bc24Contract.connect(breeder).mintOneToMany(1, "Sheep metadata")
+    ).to.be.revertedWith("This Resource does not produce any other resources.");
+  });
+
+
   it("should mint multiple tokens from a single producer token using mintOneToMany", async function () {
     await bc24Contract
       .connect(breeder)
@@ -311,21 +323,24 @@ describe("BC24", function () {
     sheepCarcassBalanceBefore = await bc24Contract.balanceOf(
       manufacturer.address,
       67
+      67
     );
 
-    expect(sheepCarcassBalanceBefore).to.equal(1);
+    expect(sheepCarcassBalanceBefore).to.equal(2);
 
     // Call mintOneToMany to create multiple tokens from the Sheep carcass token
     await bc24Contract
       .connect(manufacturer)
+      .mintOneToMany(67, "New tokens created from Sheep carcass");
       .mintOneToMany(67, "New tokens created from Sheep carcass");
 
     // Verify that the Sheep carcass token has been burned
     const sheepCarcassBalanceAfter = await bc24Contract.balanceOf(
       manufacturer.address,
       67
+      67
     );
-    expect(sheepCarcassBalanceAfter).to.equal(0);
+    expect(sheepCarcassBalanceAfter).to.equal(1);
 
     // Verify the balances of the newly minted tokens
 
@@ -336,9 +351,11 @@ describe("BC24", function () {
     const sheepHipBalance = await bc24Contract.balanceOf(
       manufacturer.address,
       70
+      70
     ); //  token ID for Sheep hip
     const sheepBackBalance = await bc24Contract.balanceOf(
       manufacturer.address,
+      71
       71
     ); //  token ID for Sheep back
     const sheepRibsBalance = await bc24Contract.balanceOf(
@@ -347,7 +364,7 @@ describe("BC24", function () {
     ); //  token ID for Sheep ribs
     const sheepBrainsBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      73
+      74
     ); //  token ID for Sheep brains
 
     // Ensure the correct quantities of new tokens have been minted based on initial_amount_minted in the templates
@@ -356,6 +373,66 @@ describe("BC24", function () {
     expect(sheepBackBalance).to.equal(5000); // 5000
     expect(sheepRibsBalance).to.equal(7500); // 7500
     expect(sheepBrainsBalance).to.equal(1 * 700); // 700
+  });
+  it("should not let mint a resource which is in a the produces_resource array of another resource", async function () {
+    await bc24Contract
+      .connect(breeder)
+      .mintRessource(1, 1, "Sheep metadata", []);
+
+    await bc24Contract
+      .connect(breeder)
+      .safeTransferFrom(breeder.address, slaughterer.address, 65, 1, "0x");
+
+    const slaughtererSheepBalanceBefore = await bc24Contract.balanceOf(
+      slaughterer.address,
+      65
+    );
+    expect(slaughtererSheepBalanceBefore).to.equal(1);
+    // Mint a Sheep carcass resource first to be used as a producer token
+    await bc24Contract
+      .connect(slaughterer)
+      .mintRessource(3, 1, "Sheep carcass metadata", [65]);
+
+    // Verify initial balances
+    let sheepCarcassBalanceBefore = await bc24Contract.balanceOf(
+      slaughterer.address,
+      66
+    );
+
+    // Ensure the slaughterer has at least 1 Sheep carcass token
+    expect(sheepCarcassBalanceBefore).to.equal(1);
+
+    // create demi-carcass
+    await bc24Contract
+      .connect(slaughterer)
+      .mintRessource(58, 1, "Sheep demi carcass metadata", [66]);
+
+    let sheepDemiCarcassBalanceBefore = await bc24Contract.balanceOf(
+      slaughterer.address,
+      67
+    );
+
+    expect(sheepDemiCarcassBalanceBefore).to.equal(2);
+
+    //transfer carcass to manufacturer
+    await bc24Contract
+      .connect(slaughterer)
+      .safeTransferFrom(slaughterer.address, manufacturer.address, 67, 2, "0x");
+
+    sheepCarcassBalanceBefore = await bc24Contract.balanceOf(
+      manufacturer.address,
+      67
+    );
+
+    expect(sheepCarcassBalanceBefore).to.equal(2);
+
+    await expect(
+      bc24Contract
+        .connect(manufacturer)
+        .mintRessource(20, 1, "Sheep shoulder from sheepCarcass", [67])
+    ).to.be.revertedWith(
+      "This resource needs to be created from a producer resource."
+    );
   });
 
   //@TODO it("should not allow BREEDER to mint resource with invalid template", async function () {
