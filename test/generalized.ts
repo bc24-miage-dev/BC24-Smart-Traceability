@@ -109,7 +109,7 @@ describe("BC24", function () {
 
   it("should allow BREEDER to mint Sheep resource", async function () {
     await expect(
-      bc24Contract.connect(breeder).mintRessource(1, 1, "Sheep metadata", [])
+      bc24Contract.connect(breeder).mintRessource(42, 1, "Sheep metadata", [])
     ).to.emit(bc24Contract, "ResourceCreatedEvent");
 
     const breederBalance = await bc24Contract.balanceOf(breeder.address, 65);
@@ -126,7 +126,7 @@ describe("BC24", function () {
     await expect(
       bc24Contract
         .connect(transporter)
-        .mintRessource(1, 1, JSON.stringify(jsonObject), [])
+        .mintRessource(42, 1, JSON.stringify(jsonObject), [])
     ).to.be.revertedWith("Caller does not have the right to use the process");
   });
 
@@ -139,7 +139,7 @@ describe("BC24", function () {
     };
     await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, JSON.stringify(jsonObject), []);
+      .mintRessource(42, 1, JSON.stringify(jsonObject), []);
     const tokenId = 65;
     const newMetaData = "New Metadata for Breeder";
     await bc24Contract.connect(breeder).setMetaData(tokenId, newMetaData);
@@ -157,7 +157,7 @@ describe("BC24", function () {
     };
     await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, JSON.stringify(jsonObject), []);
+      .mintRessource(42, 1, JSON.stringify(jsonObject), []);
     const tokenId = 65;
     const newMetaData = "New Metadata for Transporter";
     expect(
@@ -175,7 +175,7 @@ describe("BC24", function () {
 
     const mintTx = await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, JSON.stringify(jsonObject), []);
+      .mintRessource(42, 1, JSON.stringify(jsonObject), []);
     const receipt = await mintTx.wait();
 
     expect(receipt.status).to.equal(1);
@@ -185,11 +185,8 @@ describe("BC24", function () {
     // Mint a Sheep resource first to be used in minting Sheep carcass
     await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, "Sheep metadata", []);
-    const sheepBalanceBefore = await bc24Contract.balanceOf(
-      breeder.address,
-      65
-    );
+      .mintRessource(42, 1, "Sheep metadata", []);
+    const sheepBalanceBefore = await bc24Contract.balanceOf(breeder.address,65);
     expect(sheepBalanceBefore).to.equal(1);
 
     // Transfer Sheep resource to Slaughterer
@@ -207,7 +204,7 @@ describe("BC24", function () {
     // Mint Sheep carcass by Slaughterer and check the event
     await bc24Contract
       .connect(slaughterer)
-      .mintRessource(3, 1, "Sheep carcass metadata", [65]);
+      .mintRessource(45, 1, "Sheep carcass metadata", [65]);
 
     // Verify Sheep resource was burned
     const slaughtererSheepBalanceAfter = await bc24Contract.balanceOf(
@@ -229,7 +226,7 @@ describe("BC24", function () {
     await expect(
       bc24Contract
         .connect(slaughterer)
-        .mintRessource(3, 1, "Sheep carcass metadata", [])
+        .mintRessource(45, 1, "Sheep carcass metadata", [])
     ).to.be.revertedWith(
       "\nYou do not have the required resource (Sheep) to perform this action.\nYou have: 0\nYou need: 1\nWith the resources in your possession, you could create 0 items."
     );
@@ -237,7 +234,7 @@ describe("BC24", function () {
     // Mint a Sheep resource first
     await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, "Sheep metadata", []);
+      .mintRessource(42, 1, "Sheep metadata", []);
     const sheepBalanceBefore = await bc24Contract.balanceOf(
       breeder.address,
       65
@@ -260,7 +257,7 @@ describe("BC24", function () {
     await expect(
       bc24Contract
         .connect(slaughterer)
-        .mintRessource(3, 2, "Sheep carcass metadata", [65])
+        .mintRessource(45, 2, "Sheep carcass metadata", [65])
     ).to.be.revertedWith(
       "\nYou do not have the required resource (Sheep) to perform this action.\nYou have: 1\nYou need: 2\nWith the resources in your possession, you could create 1 items."
     );
@@ -272,10 +269,11 @@ describe("BC24", function () {
     );
     expect(slaughtererSheepBalanceAfter).to.equal(1);
   });
+
   it("should mint multiple tokens from a single producer token using mintOneToMany", async function () {
     await bc24Contract
       .connect(breeder)
-      .mintRessource(1, 1, "Sheep metadata", []);
+      .mintRessource(42, 1, "Sheep metadata", []);
 
     await bc24Contract
       .connect(breeder)
@@ -286,10 +284,11 @@ describe("BC24", function () {
       65
     );
     expect(slaughtererSheepBalanceBefore).to.equal(1);
+
     // Mint a Sheep carcass resource first to be used as a producer token
     await bc24Contract
       .connect(slaughterer)
-      .mintRessource(3, 1, "Sheep carcass metadata", [65]);
+      .mintRessource(45, 1, "Sheep carcass metadata", [65]); //token = 66
 
     // Verify initial balances
     let sheepCarcassBalanceBefore = await bc24Contract.balanceOf(
@@ -300,14 +299,18 @@ describe("BC24", function () {
     // Ensure the slaughterer has at least 1 Sheep carcass token
     expect(sheepCarcassBalanceBefore).to.equal(1);
 
+    await bc24Contract
+    .connect(slaughterer)
+    .mintOneToMany(66, "Sheep Demi carcass metadata"); //token = 67 and 68
+
     //transfer carcass to manufacturer
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufacturer.address, 66, 1, "0x");
+      .safeTransferFrom(slaughterer.address, manufacturer.address, 67, 1, "0x");
 
     sheepCarcassBalanceBefore = await bc24Contract.balanceOf(
       manufacturer.address,
-      66
+      67
     );
 
     expect(sheepCarcassBalanceBefore).to.equal(1);
@@ -315,52 +318,43 @@ describe("BC24", function () {
     // Call mintOneToMany to create multiple tokens from the Sheep carcass token
     await bc24Contract
       .connect(manufacturer)
-      .mintOneToMany(66, "New tokens created from Sheep carcass");
+      .mintOneToMany(67, "New tokens created from Sheep carcass");
 
     // Verify that the Sheep carcass token has been burned
     const sheepCarcassBalanceAfter = await bc24Contract.balanceOf(
       manufacturer.address,
-      66
+      67
     );
     expect(sheepCarcassBalanceAfter).to.equal(0);
 
     // Verify the balances of the newly minted tokens
+
     const sheepShoulderBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      67
-    ); //  67 is the token ID for Sheep shoulder
-    const sheepShoulderBalance2 = await bc24Contract.balanceOf(
-      manufacturer.address,
-      68
-    ); //  token ID for the 2nd Sheep shoulder
+      69
+    ); //  69 is the token ID for Sheep shoulder
     const sheepHipBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      69
+      70
     ); //  token ID for Sheep hip
     const sheepBackBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      70
+      71
     ); //  token ID for Sheep back
     const sheepRibsBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      71
-    ); //  token ID for Sheep rips
-    const sheepRibsBalance2 = await bc24Contract.balanceOf(
-      manufacturer.address,
       72
-    ); //  token ID for Sheep rips
+    ); //  token ID for Sheep ribs
     const sheepBrainsBalance = await bc24Contract.balanceOf(
       manufacturer.address,
       73
     ); //  token ID for Sheep brains
 
     // Ensure the correct quantities of new tokens have been minted based on initial_amount_minted in the templates
-    expect(sheepShoulderBalance).to.equal(2500); // 5000
-    expect(sheepShoulderBalance2).to.equal(2500); // 5000
-    expect(sheepHipBalance).to.equal(1 * 5000); // 5000
-    expect(sheepBackBalance).to.equal(1 * 5000); // 5000
-    expect(sheepRibsBalance).to.equal(7500); // 15000
-    expect(sheepRibsBalance2).to.equal(7500); // 15000
+    expect(sheepShoulderBalance).to.equal(2500); // 2500
+    expect(sheepHipBalance).to.equal(5000); // 5000
+    expect(sheepBackBalance).to.equal(5000); // 5000
+    expect(sheepRibsBalance).to.equal(7500); // 7500
     expect(sheepBrainsBalance).to.equal(1 * 700); // 700
   });
 
@@ -389,16 +383,26 @@ describe("BC24", function () {
   // });
 
   it("test all chain complex recipe", async function () {
-    let sheepId = 1,
-      cowId = 2,
-      chickenId = 5;
-    let sheepCarcassId = 3,
-      cowCarcassId = 4,
-      chickenCarcassId = 6;
-    let sheepShoulderId = 20,
-      cowHipId = 31,
-      chickenBreastsId = 42;
-    let complexRecipeId = 50;
+    let sheepId = 42,
+      cowId = 43,
+      chickenId = 44;
+
+    let sheepCarcassId = 45,
+      cowCarcassId = 46,
+      chickenCarcassId = 47;
+
+    let sheepLeftDemiCarcassId = 48,
+      sheepRightDemiCarcassId = 49,
+      cowLeftDemiCarcassId = 50,
+      cowRightDemiCarcassId = 51,
+      chickenLeftDemiCarcassId = 52,
+      chickenRightDemiCarcassId = 53;
+
+    let sheepShoulderId = 54,
+      cowHipId = 60,
+      chickenBreastsId = 65;
+
+    let complexRecipeId = 70;
 
     // Step 1: Breeder mints Sheep, Cow, and Chicken
     await bc24Contract
@@ -410,7 +414,7 @@ describe("BC24", function () {
     await bc24Contract
       .connect(breeder)
       .mintRessource(chickenId, 1, "Chicken metadata", []);
-
+    
     // Verify initial mint
     expect(await bc24Contract.balanceOf(breeder.address, 65)).to.equal(1);
     expect(await bc24Contract.balanceOf(breeder.address, 66)).to.equal(1);
@@ -428,6 +432,11 @@ describe("BC24", function () {
       .connect(breeder)
       .safeTransferFrom(breeder.address, slaughterer.address, 67, 1, "0x");
 
+    // Verify transfer
+    expect(await bc24Contract.balanceOf(slaughterer.address, 65)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 66)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 67)).to.equal(1);
+
     // Step 2: Slaughterer transforms Sheep, Cow, and Chicken into carcasses
 
     await bc24Contract
@@ -439,44 +448,72 @@ describe("BC24", function () {
     await bc24Contract
       .connect(slaughterer)
       .mintRessource(chickenCarcassId, 1, "Chicken carcass metadata", [67]);
-    // transfer slaughterer to manufacturer
+    
+     // Verify carcass mint
+    expect(await bc24Contract.balanceOf(slaughterer.address, 68)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 69)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 70)).to.equal(1);
+
+    //carcass into DemiCarcass
+    await bc24Contract
+      .connect(slaughterer)
+      .mintOneToMany(68, "Sheep Demi carcass metadata");
+    await bc24Contract
+      .connect(slaughterer)
+      .mintOneToMany(69, "Cow Demi carcass metadata");
+    await bc24Contract
+      .connect(slaughterer)
+      .mintOneToMany(70,"Chicken Demi carcass metadata");
+
+    expect(await bc24Contract.balanceOf(slaughterer.address, 71)).to.equal(1); 
+    expect(await bc24Contract.balanceOf(slaughterer.address, 72)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 73)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 74)).to.equal(1); 
+    expect(await bc24Contract.balanceOf(slaughterer.address, 75)).to.equal(1);
+    expect(await bc24Contract.balanceOf(slaughterer.address, 76)).to.equal(1);
+      // 71,72 => Demi carcass sheep
+      // 73,74 => Demi carcass Cow
+      // 75,76 => Demi carcass Chicken
+
+      // transfer slaughterer to manufacturer
 
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufacturer.address, 68, 1, "0x");
+      .safeTransferFrom(slaughterer.address, manufacturer.address, 71, 1, "0x");
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufacturer.address, 69, 1, "0x");
+      .safeTransferFrom(slaughterer.address, manufacturer.address, 73, 1, "0x");
     await bc24Contract
       .connect(slaughterer)
-      .safeTransferFrom(slaughterer.address, manufacturer.address, 70, 1, "0x");
+      .safeTransferFrom(slaughterer.address, manufacturer.address, 75, 1, "0x");
 
     // Step 3: Manufacturer transforms carcasses into specific parts
     await bc24Contract
       .connect(manufacturer)
-      .mintOneToMany(68, "Sheep shoulder metadata");
+      .mintOneToMany(71, "Sheep Demi carcass metadata"); //77, 78,79,80, 81
     await bc24Contract
       .connect(manufacturer)
-      .mintOneToMany(69, "Cow hip metadata");
+      .mintOneToMany(73, "Cow carcass metadata"); //82, 83, 84, 85, 86
     await bc24Contract
       .connect(manufacturer)
-      .mintOneToMany(70, "Chicken breasts metadata");
+      .mintOneToMany(75, "Chicken  carcass metadata"); //87, 88, 89)
+
+
     const sheepShoulderBalanceB4 = await bc24Contract.balanceOf(
       manufacturer.address,
-      71
+      77
     );
+
     const cowHipBalanceB4 = await bc24Contract.balanceOf(
       manufacturer.address,
-      80
+      83
     );
+
     const chickenBreastsBalanceB4 = await bc24Contract.balanceOf(
       manufacturer.address,
-      89
+      88
     );
-    const complexRecipeBalanceB4 = await bc24Contract.balanceOf(
-      manufacturer.address,
-      95
-    );
+
     // Step 4: Manufacturer creates the complex recipe
     await bc24Contract
       .connect(manufacturer)
@@ -484,27 +521,32 @@ describe("BC24", function () {
         complexRecipeId,
         1,
         "Complex Recipe metadata",
-        [71, 80, 89]
+        [77, 83, 88]
       );
 
     // Verify the balances of the newly minted tokens
     const sheepShoulderBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      71
+      77
     );
     const cowHipBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      80
+      83
     );
     const chickenBreastsBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      89
+      88
     );
     const complexRecipeBalance = await bc24Contract.balanceOf(
       manufacturer.address,
-      95
+      90
     );
-  });
+    expect(sheepShoulderBalance).to.equal(2000);
+    expect(cowHipBalance).to.equal(500);
+    expect(chickenBreastsBalance).to.equal(2500);
+    expect(complexRecipeBalance).to.equal(1500);
+
+  }); 
   it("test breed", async () => {
     const jsonObject = {
       placeOfOrigin: "Random Place",
