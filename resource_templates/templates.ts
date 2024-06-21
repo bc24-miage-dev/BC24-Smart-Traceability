@@ -1,7 +1,7 @@
 export const ressourceTemplates = [
   // <------------------------> Animal
   {
-    ressource_id: 45,
+    ressource_id: 42,
     ressource_name: "Sheep",
     needed_resources: [],
     needed_resources_amounts: [],
@@ -13,7 +13,7 @@ export const ressourceTemplates = [
   },
 
   {
-    ressource_id: 46,
+    ressource_id: 43,
     ressource_name: "Cow",
     needed_resources: [],
     needed_resources_amounts: [],
@@ -25,7 +25,7 @@ export const ressourceTemplates = [
   },
 
   {
-    ressource_id: 47,
+    ressource_id: 44,
     ressource_name: "Chicken",
     needed_resources: [],
     needed_resources_amounts: [],
@@ -39,51 +39,50 @@ export const ressourceTemplates = [
 // <------------------------> Carcass
 
   {
-    ressource_id: 48,
+    ressource_id: 45,
     ressource_name: "Sheep carcass",
-    needed_resources: [45],
+    needed_resources: [42],
     needed_resources_amounts: [1],
     initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
-    produces_resources: [],
-    produces_resources_amounts: [],
-    ressource_type: "Carcass",
+    produces_resources: [48,49],
+    produces_resources_amounts: [1,1],
+    ressource_type : "Carcass"
   },
 
   {
 
-    ressource_id: 49,
+    ressource_id: 46,
     ressource_name: "Cow carcass",
-    needed_resources: [46],
+    needed_resources: [43],
     needed_resources_amounts: [1],
     initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
-    produces_resources: [],
-    produces_resources_amounts: [],
+    produces_resources: [50,51],
+    produces_resources_amounts: [1,1],
     ressource_type : "Carcass"
 
   },
 
   {
-    ressource_id: 50,
+    ressource_id: 47,
     ressource_name: "Chicken carcass",
-    needed_resources: [47],
+    needed_resources: [44],
     needed_resources_amounts: [1],
     initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
-    produces_resources: [],
-    produces_resources_amounts: [],
+    produces_resources: [52,53],
+    produces_resources_amounts: [1,1],
     ressource_type : "Carcass"
   },
 
 //<------------------> Demi Carcass
-
   {
-    ressource_id: 51,
-    ressource_name: "Sheep demi carcass",
-    needed_resources: [48],
-    needed_resources_amounts: [1],
-    initial_amount_minted: 2,
+    ressource_id: 48,
+    ressource_name: "Sheep Left Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
     produces_resources: [54, 55, 56, 57, 58],
     produces_resources_amounts: [1, 1, 1, 1, 1],
@@ -91,11 +90,33 @@ export const ressourceTemplates = [
   },
 
   {
-    ressource_id: 52,
-    ressource_name: "Cow Demi carcass",
-    needed_resources: [49],
-    needed_resources_amounts: [1],
-    initial_amount_minted: 2,
+    ressource_id: 49,
+    ressource_name: "Sheep Right Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
+    required_role: "SLAUGHTERER",
+    produces_resources: [54, 55, 56, 57, 58],
+    produces_resources_amounts: [1, 1, 1, 1, 1],
+    ressource_type : "Demi Carcass"
+  },
+  {
+    ressource_id: 50,
+    ressource_name: "Cow Left Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
+    required_role: "SLAUGHTERER",
+    produces_resources: [59, 60, 61, 62, 63],
+    produces_resources_amounts: [1, 1, 1, 1, 1],
+    ressource_type : "Demi Carcass"
+  },
+  {
+    ressource_id: 51,
+    ressource_name: "Cow Right Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
     produces_resources: [59, 60, 61, 62, 63],
     produces_resources_amounts: [1, 1, 1, 1, 1],
@@ -103,11 +124,23 @@ export const ressourceTemplates = [
   },
 
   {
+    ressource_id: 52,
+    ressource_name: "Chicken Left Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
+    required_role: "SLAUGHTERER",
+    produces_resources: [64, 65, 69],
+    produces_resources_amounts: [1, 1, 1],
+    ressource_type : "Demi Carcass"
+  },
+
+  {
     ressource_id: 53,
-    ressource_name: "Chicken demi carcass",
-    needed_resources: [50],
-    needed_resources_amounts: [1],
-    initial_amount_minted: 2,
+    ressource_name: "Chicken Right Demi Carcass",
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 1,
     required_role: "SLAUGHTERER",
     produces_resources: [64, 65, 69],
     produces_resources_amounts: [1, 1, 1],
