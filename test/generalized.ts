@@ -55,10 +55,10 @@ describe("BC24", function () {
     // Assuming `templates` and `ressourceTemplates` are the arrays to compare
     // Extract and sort the resource_id from both arrays
     const sortedTemplateIds = templates
-      .map((template) => template.resource_id)
+      .map((template) => template.ressource_id)
       .sort();
     const sortedRessourceTemplateIds = ressourceTemplates
-      .map((template) => template.resource_id)
+      .map((template) => template.ressource_id)
       .sort();
 
     // Use deep equality to compare the sorted arrays of resource_id
@@ -145,7 +145,6 @@ describe("BC24", function () {
     await bc24Contract.connect(breeder).setMetaData(tokenId, newMetaData);
 
     const metaData = await bc24Contract.getMetaData(tokenId);
-    console.log(metaData);
     expect(metaData.data[0].dataString).to.equal(newMetaData);
   });
 
@@ -187,7 +186,10 @@ describe("BC24", function () {
     await bc24Contract
       .connect(breeder)
       .mintRessource(42, 1, "Sheep metadata", []);
-    const sheepBalanceBefore = await bc24Contract.balanceOf(breeder.address,65);
+    const sheepBalanceBefore = await bc24Contract.balanceOf(
+      breeder.address,
+      65
+    );
     expect(sheepBalanceBefore).to.equal(1);
 
     // Transfer Sheep resource to Slaughterer
@@ -281,7 +283,6 @@ describe("BC24", function () {
     ).to.be.revertedWith("This Resource does not produce any other resources.");
   });
 
-
   it("should mint multiple tokens from a single producer token using mintOneToMany", async function () {
     await bc24Contract
       .connect(breeder)
@@ -312,8 +313,8 @@ describe("BC24", function () {
     expect(sheepCarcassBalanceBefore).to.equal(1);
 
     await bc24Contract
-    .connect(slaughterer)
-    .mintOneToMany(66, "Sheep Demi carcass metadata"); //token = 67 and 68
+      .connect(slaughterer)
+      .mintOneToMany(66, "Sheep Demi carcass metadata"); //token = 67 and 68
 
     //transfer carcass to manufacturer
     await bc24Contract
@@ -383,7 +384,7 @@ describe("BC24", function () {
       65
     );
     expect(slaughtererSheepBalanceBefore).to.equal(1);
-    
+
     // Mint a Sheep carcass resource first to be used as a producer token
     await bc24Contract
       .connect(slaughterer)
@@ -400,8 +401,8 @@ describe("BC24", function () {
 
     // create demi-carcass
     await bc24Contract
-    .connect(slaughterer)
-    .mintOneToMany(66, "Sheep Demi carcass metadata"); //token = 67 and 68
+      .connect(slaughterer)
+      .mintOneToMany(66, "Sheep Demi carcass metadata"); //token = 67 and 68
 
     let sheepDemiCarcassBalanceBefore = await bc24Contract.balanceOf(
       slaughterer.address,
@@ -411,7 +412,7 @@ describe("BC24", function () {
     expect(sheepDemiCarcassBalanceBefore).to.equal(1);
 
     //transfer demi carcass to manufacturer
-    await bc24Contract  
+    await bc24Contract
       .connect(slaughterer)
       .safeTransferFrom(slaughterer.address, manufacturer.address, 67, 1, "0x");
 
@@ -430,30 +431,6 @@ describe("BC24", function () {
       "This resource needs to be created from a producer resource."
     );
   });
-
-  //@TODO it("should not allow BREEDER to mint resource with invalid template", async function () {
-  //   let invalidTemplate = {
-  //     ressource_id: 0,  // Invalid because ressource_id is 0
-  //     ressource_name: "",
-  //     needed_resources: [],
-  //     needed_resources_amounts: [],
-  //     initial_amount_minted: 1,
-  //     required_role: "",
-  //     produces_resources: [],
-  //     produces_resources_amounts: [],
-  //   };
-
-  //   const jsonObject = {
-  //     placeOfOrigin: "Random Place",
-  //     dateOfBirth: Math.floor(Math.random() * 1000000000),
-  //     gender: Math.random() < 0.5 ? "Male" : "Female",
-  //     weight: Math.random() * 100,
-  //   };
-
-  //   await expect(
-  //     bc24Contract.connect(breeder).mintRessource(0, 1, JSON.stringify(jsonObject), [])
-  //   ).to.be.revertedWith("Resource does not seem to exists in the system. Please check the id and try again. Otherwise contact the admin to add a new ressource to the system.");
-  // });
 
   it("test all chain complex recipe", async function () {
     let sheepId = 42,
@@ -487,7 +464,7 @@ describe("BC24", function () {
     await bc24Contract
       .connect(breeder)
       .mintRessource(chickenId, 1, "Chicken metadata", []);
-    
+
     // Verify initial mint
     expect(await bc24Contract.balanceOf(breeder.address, 65)).to.equal(1);
     expect(await bc24Contract.balanceOf(breeder.address, 66)).to.equal(1);
@@ -521,8 +498,8 @@ describe("BC24", function () {
     await bc24Contract
       .connect(slaughterer)
       .mintRessource(chickenCarcassId, 1, "Chicken carcass metadata", [67]);
-    
-     // Verify carcass mint
+
+    // Verify carcass mint
     expect(await bc24Contract.balanceOf(slaughterer.address, 68)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 69)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 70)).to.equal(1);
@@ -536,19 +513,19 @@ describe("BC24", function () {
       .mintOneToMany(69, "Cow Demi carcass metadata");
     await bc24Contract
       .connect(slaughterer)
-      .mintOneToMany(70,"Chicken Demi carcass metadata");
+      .mintOneToMany(70, "Chicken Demi carcass metadata");
 
-    expect(await bc24Contract.balanceOf(slaughterer.address, 71)).to.equal(1); 
+    expect(await bc24Contract.balanceOf(slaughterer.address, 71)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 72)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 73)).to.equal(1);
-    expect(await bc24Contract.balanceOf(slaughterer.address, 74)).to.equal(1); 
+    expect(await bc24Contract.balanceOf(slaughterer.address, 74)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 75)).to.equal(1);
     expect(await bc24Contract.balanceOf(slaughterer.address, 76)).to.equal(1);
-      // 71,72 => Demi carcass sheep
-      // 73,74 => Demi carcass Cow
-      // 75,76 => Demi carcass Chicken
+    // 71,72 => Demi carcass sheep
+    // 73,74 => Demi carcass Cow
+    // 75,76 => Demi carcass Chicken
 
-      // transfer slaughterer to manufacturer
+    // transfer slaughterer to manufacturer
 
     await bc24Contract
       .connect(slaughterer)
@@ -570,7 +547,6 @@ describe("BC24", function () {
     await bc24Contract
       .connect(manufacturer)
       .mintOneToMany(75, "Chicken  carcass metadata"); //87, 88, 89)
-
 
     const sheepShoulderBalanceB4 = await bc24Contract.balanceOf(
       manufacturer.address,
@@ -618,9 +594,7 @@ describe("BC24", function () {
     expect(cowHipBalance).to.equal(500);
     expect(chickenBreastsBalance).to.equal(2500);
     expect(complexRecipeBalance).to.equal(1500);
-
-  }); 
-
+  });
 
   it("test breed", async () => {
     const jsonObject = {
@@ -636,7 +610,7 @@ describe("BC24", function () {
 
     const muttonReceipt = await mutton.wait();
 
-    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+    const tokenId = getTokenIdsFromReceipt(muttonReceipt)[0];
     const metaData = await getLatestMetaData(tokenId);
 
     expect(JSON.parse(metaData.metaData.data[0].dataString)).to.deep.equal(
@@ -657,7 +631,7 @@ describe("BC24", function () {
       .mintRessource(42, 1, JSON.stringify(initialData), []);
 
     const muttonReceipt = await mutton.wait();
-    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+    const tokenId = getTokenIdsFromReceipt(muttonReceipt)[0];
 
     const updateData = {
       weight: Math.random() * 100,
@@ -720,7 +694,7 @@ describe("BC24", function () {
       .mintRessource(42, 1, JSON.stringify(initialData), []);
 
     const muttonReceipt = await mutton.wait();
-    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+    const tokenId = getTokenIdsFromReceipt(muttonReceipt)[0];
 
     const transferTransaction = await bc24Contract
       .connect(breeder)
@@ -783,7 +757,7 @@ describe("BC24", function () {
       .mintRessource(42, 1, "sheep metadata", []);
 
     const muttonReceipt = await sheep.wait();
-    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+    const tokenId = getTokenIdsFromReceipt(muttonReceipt)[0];
 
     await expect(
       bc24Contract
@@ -800,7 +774,7 @@ describe("BC24", function () {
       .mintRessource(42, 1, "Sheep", []);
 
     const muttonReceipt = await sheep.wait();
-    const tokenId = getTokenIdFromReceipt(muttonReceipt);
+    const tokenId = getTokenIdsFromReceipt(muttonReceipt)[0];
 
     await bc24Contract
       .connect(breeder)
@@ -810,7 +784,7 @@ describe("BC24", function () {
       .connect(slaughterer)
       .mintRessource(45, 1, "Sheep carcass.", [tokenId]);
     const sheepCarcassReceipt = await sheepCarcass.wait();
-    const sheepCarcassTokenId = getTokenIdFromReceipt(sheepCarcassReceipt);
+    const sheepCarcassTokenId = getTokenIdsFromReceipt(sheepCarcassReceipt)[0];
 
     const carcassMetaDataEvent = await getLatestMetaData(sheepCarcassTokenId);
 
@@ -821,10 +795,12 @@ describe("BC24", function () {
   });
 
   it("should not allow to create resource if wrong ingredients provided", async () => {
-    const cow = await bc24Contract.connect(breeder).mintRessource(43, 1, "Cow", []);
+    const cow = await bc24Contract
+      .connect(breeder)
+      .mintRessource(43, 1, "Cow", []);
 
     const cowReceit = await cow.wait();
-    const tokenId = getTokenIdFromReceipt(cowReceit);
+    const tokenId = getTokenIdsFromReceipt(cowReceit)[0];
 
     await bc24Contract
       .connect(breeder)
@@ -845,14 +821,14 @@ describe("BC24", function () {
       .mintRessource(42, 1, "Sheep", []);
 
     const sheepReceipt = await sheep.wait();
-    const sheepTokenId = getTokenIdFromReceipt(sheepReceipt);
+    const sheepTokenId = getTokenIdsFromReceipt(sheepReceipt)[0];
 
     const beef = await bc24Contract
       .connect(breeder)
       .mintRessource(43, 1, "Beef", []);
 
     const beefReceipt = await beef.wait();
-    const beefTokenId = getTokenIdFromReceipt(beefReceipt);
+    const beefTokenId = getTokenIdsFromReceipt(beefReceipt)[0];
 
     // Transfer sheep to slaughterer
     await bc24Contract
@@ -880,7 +856,7 @@ describe("BC24", function () {
       .connect(slaughterer)
       .mintRessource(45, 1, "Sheep carcass", [sheepTokenId]);
     const sheepCarcasReceipt = await sheepCarcas.wait();
-    const sheepCarcasTokenId = getTokenIdFromReceipt(sheepCarcasReceipt);
+    const sheepCarcasTokenId = getTokenIdsFromReceipt(sheepCarcasReceipt)[0];
 
     // Slaughter beef
     const beefCarcas = await bc24Contract
@@ -888,83 +864,92 @@ describe("BC24", function () {
       .mintRessource(46, 1, "Beef carcass", [beefTokenId]);
 
     const beefCarcasReceipt = await beefCarcas.wait();
-    const beefCarcasTokenId = getTokenIdFromReceipt(beefCarcasReceipt);
+    const beefCarcasTokenId = getTokenIdsFromReceipt(beefCarcasReceipt)[0];
 
     // Slaughter Demi sheep
     const sheepDemiCarcas = await bc24Contract
       .connect(slaughterer)
       .mintOneToMany(sheepCarcasTokenId, "SheepDemi carcass");
     const sheepDemiCarcasReceipt = await sheepDemiCarcas.wait();
-    const sheepDemiCarcasTokenId = getTokenIdFromReceipt(sheepDemiCarcasReceipt);
-      
+    const sheepDemiCarcasTokenIds = getTokenIdsFromReceipt(
+      sheepDemiCarcasReceipt
+    );
+
     // Slaughter Demi beef
     const beefDemiCarcas = await bc24Contract
       .connect(slaughterer)
-      .mintOneToMany(beefCarcasTokenId,"BeefDemi carcass");
+      .mintOneToMany(beefCarcasTokenId, "BeefDemi carcass");
 
     const beefDemiCarcasReceipt = await beefDemiCarcas.wait();
-    const beefDemiCarcasTokenId = getTokenIdFromReceipt(beefDemiCarcasReceipt);
-    
-    // transfer sheep carcass to manufacturer
-    await bc24Contract
-      .connect(slaughterer)
-      .safeTransferFrom(
-        slaughterer.address,
-        manufacturer.address,
-        sheepDemiCarcasTokenId,
-        1,
-        "0x"
-      );
+    const beefDemiCarcasTokenIds = getTokenIdsFromReceipt(
+      beefDemiCarcasReceipt
+    );
+
+    // transfer sheeps carcass to manufacturer
+    for (let i = 0; i < sheepDemiCarcasTokenIds.length; i++) {
+      await bc24Contract
+        .connect(slaughterer)
+        .safeTransferFrom(
+          slaughterer.address,
+          manufacturer.address,
+          sheepDemiCarcasTokenIds[i],
+          1,
+          "0x"
+        );
+    }
 
     // transfer beef carcass to manufacturer
-    await bc24Contract
-      .connect(slaughterer)
-      .safeTransferFrom(
-        slaughterer.address,
-        manufacturer.address,
-        beefDemiCarcasTokenId,
-        1,
-        "0x"
-      );
+    for (let i = 0; i < beefDemiCarcasTokenIds.length; i++) {
+      await bc24Contract
+        .connect(slaughterer)
+        .safeTransferFrom(
+          slaughterer.address,
+          manufacturer.address,
+          beefDemiCarcasTokenIds[i],
+          1,
+          "0x"
+        );
+    }
 
-    // create products from carcasses
+    // create products from carcasse
     const producesSheepCarcassResources = await bc24Contract
       .connect(manufacturer)
       .mintOneToMany(
-        sheepDemiCarcasTokenId,
+        sheepDemiCarcasTokenIds[0],
         "Butchering the first sheep real good."
       );
 
     const producesBeefCarcassResources = await bc24Contract
       .connect(manufacturer)
       .mintOneToMany(
-        beefDemiCarcasTokenId, 
+        beefDemiCarcasTokenIds[0],
+        "Butchering this beef real good."
+      );
+
+    const producesBeefCarcassResources1 = await bc24Contract
+      .connect(manufacturer)
+      .mintOneToMany(
+        beefDemiCarcasTokenIds[1],
         "Butchering this beef real good."
       );
 
     let sheepShoulderTokenId = [];
     let beefShoulderTokenId = [];
 
-    const filter = bc24Contract.filters.ResourceMetaDataChangedEvent(); // Replace with your event name
+    const filter = bc24Contract.filters.ResourceMetaDataChangedEvent();
     const events = await bc24Contract.queryFilter(filter);
 
     for (let event of events) {
-      if (
-        event.args.metaData.resourceId == 54 &&
-        event.args.metaData.ingredients[0] == sheepDemiCarcasTokenId
-      ) {
+      if (event.args.metaData.resourceId == 54) {
         sheepShoulderTokenId.push(event.args.tokenId);
       }
-      if (
-        event.args.metaData.resourceId == 59 &&
-        event.args.metaData.ingredients[0] == beefDemiCarcasTokenId
-      ) {
+      if (event.args.metaData.resourceId == 59) {
         beefShoulderTokenId.push(event.args.tokenId);
       }
     }
 
     // create X patties
-    const x = 51;
+    let x = 51;
     const mergezPatty = await bc24Contract
       .connect(manufacturer)
       .mintRessource(66, x, "Mergez Patty", [
@@ -976,30 +961,185 @@ describe("BC24", function () {
 
     const mergezPattyReceipt = await mergezPatty.wait();
 
+    const max_number_of_patties_with_first_beef = Math.min(3500 / 70, x);
+
+    const max_number_of_patties_with_second_beef =
+      x - max_number_of_patties_with_first_beef;
+
     expect(
       await bc24Contract
         .connect(manufacturer)
         .balanceOf(manufacturer.address, beefShoulderTokenId[0])
-    ).to.equal(3500 - x * 50);
+    ).to.equal(3500 - max_number_of_patties_with_first_beef * 70);
+
+    expect(
+      await bc24Contract
+        .connect(manufacturer)
+        .balanceOf(manufacturer.address, beefShoulderTokenId[1])
+    ).to.equal(3500 - max_number_of_patties_with_second_beef * 70);
 
     expect(
       await bc24Contract
         .connect(manufacturer)
         .balanceOf(manufacturer.address, sheepShoulderTokenId[0])
-    ).to.equal(2500 - (x - 1) * 50);
-
-    expect(
-      await bc24Contract
-        .connect(manufacturer)
-        .balanceOf(manufacturer.address, sheepShoulderTokenId[1])
-    ).to.equal(2500 - (x - 2500 / 50) * 50);
+    ).to.equal(2500 - x * 30);
   });
 
-  const getTokenIdFromReceipt = (receipt: any) => {
+  it("Should tell that the provided resources are not sufficient", async () => {
+    const sheep = await bc24Contract
+      .connect(breeder)
+      .mintRessource(42, 1, "Sheep", []);
+
+    const sheepReceipt = await sheep.wait();
+    const sheepTokenId = getTokenIdsFromReceipt(sheepReceipt)[0];
+
+    const beef = await bc24Contract
+      .connect(breeder)
+      .mintRessource(43, 1, "Beef", []);
+
+    const beefReceipt = await beef.wait();
+    const beefTokenId = getTokenIdsFromReceipt(beefReceipt)[0];
+
+    // Transfer sheep to slaughterer
+    await bc24Contract
+      .connect(breeder)
+      .safeTransferFrom(
+        breeder.address,
+        slaughterer.address,
+        sheepTokenId,
+        1,
+        "0x"
+      );
+    // Transfer beef to slaughterer
+    await bc24Contract
+      .connect(breeder)
+      .safeTransferFrom(
+        breeder.address,
+        slaughterer.address,
+        beefTokenId,
+        1,
+        "0x"
+      );
+
+    // Slaughter sheep
+    const sheepCarcas = await bc24Contract
+      .connect(slaughterer)
+      .mintRessource(45, 1, "Sheep carcass", [sheepTokenId]);
+    const sheepCarcasReceipt = await sheepCarcas.wait();
+    const sheepCarcasTokenId = getTokenIdsFromReceipt(sheepCarcasReceipt)[0];
+
+    // Slaughter beef
+    const beefCarcas = await bc24Contract
+      .connect(slaughterer)
+      .mintRessource(46, 1, "Beef carcass", [beefTokenId]);
+
+    const beefCarcasReceipt = await beefCarcas.wait();
+    const beefCarcasTokenId = getTokenIdsFromReceipt(beefCarcasReceipt)[0];
+
+    // Slaughter Demi sheep
+    const sheepDemiCarcas = await bc24Contract
+      .connect(slaughterer)
+      .mintOneToMany(sheepCarcasTokenId, "SheepDemi carcass");
+    const sheepDemiCarcasReceipt = await sheepDemiCarcas.wait();
+    const sheepDemiCarcasTokenIds = getTokenIdsFromReceipt(
+      sheepDemiCarcasReceipt
+    );
+
+    // Slaughter Demi beef
+    const beefDemiCarcas = await bc24Contract
+      .connect(slaughterer)
+      .mintOneToMany(beefCarcasTokenId, "BeefDemi carcass");
+
+    const beefDemiCarcasReceipt = await beefDemiCarcas.wait();
+    const beefDemiCarcasTokenIds = getTokenIdsFromReceipt(
+      beefDemiCarcasReceipt
+    );
+
+    // transfer sheeps carcass to manufacturer
+    for (let i = 0; i < sheepDemiCarcasTokenIds.length; i++) {
+      await bc24Contract
+        .connect(slaughterer)
+        .safeTransferFrom(
+          slaughterer.address,
+          manufacturer.address,
+          sheepDemiCarcasTokenIds[i],
+          1,
+          "0x"
+        );
+    }
+
+    // transfer beef carcass to manufacturer
+    for (let i = 0; i < beefDemiCarcasTokenIds.length; i++) {
+      await bc24Contract
+        .connect(slaughterer)
+        .safeTransferFrom(
+          slaughterer.address,
+          manufacturer.address,
+          beefDemiCarcasTokenIds[i],
+          1,
+          "0x"
+        );
+    }
+
+    // create products from carcasse
+    const producesSheepCarcassResources = await bc24Contract
+      .connect(manufacturer)
+      .mintOneToMany(
+        sheepDemiCarcasTokenIds[0],
+        "Butchering the first sheep real good."
+      );
+
+    const producesBeefCarcassResources = await bc24Contract
+      .connect(manufacturer)
+      .mintOneToMany(
+        beefDemiCarcasTokenIds[0],
+        "Butchering this beef real good."
+      );
+
+    const producesBeefCarcassResources1 = await bc24Contract
+      .connect(manufacturer)
+      .mintOneToMany(
+        beefDemiCarcasTokenIds[1],
+        "Butchering this beef real good."
+      );
+
+    let sheepShoulderTokenId = [];
+    let beefShoulderTokenId = [];
+
+    const filter = bc24Contract.filters.ResourceMetaDataChangedEvent();
+    const events = await bc24Contract.queryFilter(filter);
+
+    for (let event of events) {
+      if (event.args.metaData.resourceId == 54) {
+        sheepShoulderTokenId.push(event.args.tokenId);
+      }
+      if (event.args.metaData.resourceId == 59) {
+        beefShoulderTokenId.push(event.args.tokenId);
+      }
+    }
+
+    const expectedRevertMessage =
+      "\nYou do not have the required resource (Sheep shoulder) to perform this action.\nYou have: 2500\nYou need: 7500\nWith the resources in your possession, you could create 83 items.";
+    // create X patties
+    let x = 250;
+    await expect(
+      bc24Contract
+        .connect(manufacturer)
+        .mintRessource(66, x, "Mergez Patty", [
+          ...sheepShoulderTokenId,
+          ...beefShoulderTokenId,
+        ])
+    ).to.be.revertedWith(expectedRevertMessage);
+  });
+
+  const getTokenIdsFromReceipt = (receipt: any) => {
     const resourceCreatedEvents = receipt.logs.filter(
       (log) => log.fragment.name === "ResourceCreatedEvent"
     );
-    return resourceCreatedEvents[0].args.tokenId;
+    const tokenIds = resourceCreatedEvents.map(
+      (event: any) => event.args.tokenId
+    );
+    return tokenIds;
   };
 
   const printCreatedResources = async () => {
