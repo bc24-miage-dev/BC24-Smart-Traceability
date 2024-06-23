@@ -184,12 +184,13 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                     produces[i]
                 ];
             require(
-                hasRole(
-                    keccak256(
-                        abi.encode(producedResourceTemplate.required_role)
+                hasRole(ADMIN_ROLE, msg.sender) ||
+                    hasRole(
+                        keccak256(
+                            abi.encode(producedResourceTemplate.required_role)
+                        ),
+                        msg.sender
                     ),
-                    msg.sender
-                ),
                 "Caller does not have the required role to mint new tokens"
             );
         }
