@@ -90,6 +90,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         }
 
         _grantRole(ADMIN_ROLE, admin);
+        userRoles[admin] = "ADMIN_ROLE";
 
         // Populate the resourceTemplates mapping
         for (uint i = 0; i < _ressourceTemplates.length; i++) {

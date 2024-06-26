@@ -9,6 +9,7 @@ async function main() {
   const breeder = (await ethers.getSigners())[1];
   const slaughterer = (await ethers.getSigners())[2];
   const manufacturer = (await ethers.getSigners())[3];
+  const transporter = (await ethers.getSigners())[4];
 
   const instance = ContractFactory.attach(contractAddress);
 
@@ -34,11 +35,16 @@ async function main() {
 
   const roleReceipt3 = await roleTransaction3.wait();
 
+  const roleTransaction4 = await instance
+    .connect(admin)
+    .giveUserRole(transporter.address, "TRANSPORTER", {});
+
   console.log("Roles of users: ");
   console.log(`Admin: ${admin.address}`);
   console.log(`Breeder: ${breeder.address}`);
   console.log(`Slaughterer: ${slaughterer.address}`);
   console.log(`Manufacturer: ${manufacturer.address}`);
+  console.log(`Transporter: ${transporter.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
