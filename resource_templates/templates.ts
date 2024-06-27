@@ -152,8 +152,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 54,
     ressource_name: "Sheep shoulder",
-    needed_resources: [45], //maybe put 0 as a reserved id so u cant mint it from nothing 
-    needed_resources_amounts: [1],
+    needed_resources: [], 
+    needed_resources_amounts: [],
     initial_amount_minted: 2500,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -163,8 +163,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 55,
     ressource_name: "Sheep hip",
-    needed_resources: [45],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 5000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -175,8 +175,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 56,
     ressource_name: "Sheep back",
-    needed_resources: [45],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 5000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -187,8 +187,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 57,
     ressource_name: "Sheep rips",
-    needed_resources: [45],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 7500,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -199,20 +199,19 @@ export const ressourceTemplates = [
   {
     ressource_id: 58,
     ressource_name: "Sheep brains",
-    needed_resources: [45],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 700,
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
     ressource_type : "Meat"
   },
-
   {
     ressource_id: 59,
     ressource_name: "Cow shoulder",
-    needed_resources: [46],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 3500,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -223,8 +222,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 60,
     ressource_name: "Cow hip",
-    needed_resources: [46],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 1000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -235,8 +234,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 61,
     ressource_name: "Cow back",
-    needed_resources: [46],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 2000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -247,8 +246,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 62,
     ressource_name: "Cow rips",
-    needed_resources: [46],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 1500,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -259,8 +258,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 63,
     ressource_name: "Cow brains",
-    needed_resources: [46],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 1690,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -271,8 +270,8 @@ export const ressourceTemplates = [
   {
     ressource_id: 64,
     ressource_name: "Chicken thighs",
-    needed_resources: [50],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 3000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -283,8 +282,20 @@ export const ressourceTemplates = [
   {
     ressource_id: 65,
     ressource_name: "Chicken breasts",
-    needed_resources: [50],
-    needed_resources_amounts: [1],
+    needed_resources: [],
+    needed_resources_amounts: [],
+    initial_amount_minted: 3000,
+    required_role: "MANUFACTURER",
+    produces_resources: [],
+    produces_resources_amounts: [],
+    ressource_type : "Meat"
+  },
+
+  {
+    ressource_id: 69,
+    ressource_name: "Chicken wings",
+    needed_resources: [],
+    needed_resources_amounts: [],
     initial_amount_minted: 3000,
     required_role: "MANUFACTURER",
     produces_resources: [],
@@ -303,6 +314,7 @@ export const ressourceTemplates = [
     produces_resources_amounts: [],
     ressource_type : "Meat"
   },
+
 // <----------------------> Product
   {
     ressource_id: 67,
@@ -328,17 +340,7 @@ export const ressourceTemplates = [
     ressource_type : "Product"
   },
 
-  {
-    ressource_id: 69,
-    ressource_name: "Chicken wings",
-    needed_resources: [50],
-    needed_resources_amounts: [1],
-    initial_amount_minted: 3000,
-    required_role: "MANUFACTURER",
-    produces_resources: [],
-    produces_resources_amounts: [],
-    ressource_type : "Product"
-  },
+  
 
   {
     ressource_id: 70,
@@ -346,6 +348,17 @@ export const ressourceTemplates = [
     needed_resources: [54, 60, 65], // Sheep shoulder, Cow hip, Chicken breasts
     needed_resources_amounts: [500, 500, 500],
     initial_amount_minted: 1500,
+    required_role: "MANUFACTURER",
+    produces_resources: [],
+    produces_resources_amounts: [],
+    ressource_type : "Product"
+  },
+  {
+    ressource_id: 71,
+    ressource_name: "Chicken wings fried",
+    needed_resources: [69],
+    needed_resources_amounts: [1000],
+    initial_amount_minted: 1000,
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
