@@ -4,7 +4,6 @@
 
 The project revolves around the BC24-Contract, a Solidity smart contract designed for managing resources on a private Ethereum blockchain.
 
-
 ## Installing dependencies
 
 ```
@@ -16,9 +15,12 @@ npm install
 Copy the `.env-template` and rename it to `.env`
 
 Make sure to add at least the admin private key before deplying the contract.
-This address is the owner of the contract.
 
-The remaining privat keys will be used in the GUI to test. So add at your leasure.
+## Templates
+
+Resource templates `resource_templates/templates.ts` need to be provided at contract construction time.
+
+Please refer to the project documentation to learn more about the clear structuring and possible usecases.
 
 ## Deploying the contract
 
@@ -34,22 +36,18 @@ You can target any network from your Hardhat config using:
 npx hardhat run scripts/deploy.ts --network <network>
 ```
 
-By default it is going to be the local hardhat nework.
+If you are not providing any `--network` flag, the default is going to be the local hardhat nework.
 
 **After copy the Contract Address from the CLI into the .env file to make sure you run all subsequent scripts on the right contract.**
 
 **Note**:  
 If running locally hardhat will automatically use the test wallets of the hardhat nework.
 
-
-
-Optionally deply run
+Optionally run after_deploy which will set up some initial roles.
 
 ```
-npx hardhat run scripts/after_deploy.ts --network besu
+npx hardhat run scripts/after_deploy.ts --network <network>
 ```
-
-to assign some roles to wallet addresses.
 
 ## Testing
 
