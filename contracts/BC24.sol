@@ -89,6 +89,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             );
         }
 
+        // Grant the admin role to the contract creator
         _grantRole(ADMIN_ROLE, admin);
         giveUserRole(admin, "ADMIN_ROLE");
 
@@ -101,12 +102,32 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         }
     }
 
+    /**
+     * Assigns a user role to an account.
+     *
+     * This function updates the role of a user account. It requires the caller to have the ADMIN_ROLE
+     * to ensure only authorized users can assign roles. Upon successful role assignment, the user's role
+     * is updated in the `userRoles` mapping for easier role verification.
+     *
+     * @param account - The address of the user account to assign the role to.
+     * @param role - The role to be assigned to the user account.
+     *
+     * Requirements:
+     * - The caller must have `ADMIN_ROLE`.
+     */
     function giveUserRole(address account, string memory role) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can assign role");
         _grantRole(keccak256(abi.encode(role)), account);
         userRoles[account] = role;
     }
 
+    /**
+     * Retrieves all resource templates.
+     *
+     * Returns an array of all resource templates stored in the contract.
+     *
+     * @return ResourceTemplate[] - An array of resource template structures.
+     */
     function getResourceTemplates()
         public
         view
@@ -115,10 +136,36 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         return allRessourceTemplates;
     }
 
+    /**
+     * Retrieves the current metadata for a given ID.
+     *
+     * @param id - The unique identifier for the token Id which metadata is retrieve.
+     *
+     * @return MetaData - The metadata structure associated with the given ID.
+     */
     function getMetaData(uint256 id) public view returns (MetaData memory) {
         return metaData[id];
     }
 
+    /**
+     * Sets metadata for a given token ID.
+     *
+     * Allows setting of metadata for a token specified by `tokenId`. This function is restricted
+     * to the `Token Owner` or an account with the `ADMIN_ROLE`.
+     *
+     * The metadata can be stored by and for a specific role. This allows for different metadata to be stored
+     * simultaneously for the same token. The metadata is stored in the `MetaData` structure which contains
+     * an array of `Data` structures. Each `Data` structure contains the metadata string.
+     *
+     *  - See the `MetaData` struct for more information.
+     *
+     * @param tokenId - The unique identifier for the token.
+     * @param _metaData - The metadata in string format to be associated with the token.
+     *
+     * Requirements:
+     * - The caller must be the owner of the token
+     * - or have the `ADMIN_ROLE`.
+     */
     function setMetaData(uint256 tokenId, string memory _metaData) public {
         require(
             hasRole(ADMIN_ROLE, msg.sender) ||
@@ -133,7 +180,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         for (uint i = 0; i < data.length; i++) {
             if (
                 hasRole(
-                    keccak256(abi.encode(data[i].required_role)), //ADMIN_ROLE
+                    keccak256(abi.encode(data[i].required_role)),
                     msg.sender
                 )
             ) {
@@ -157,6 +204,23 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         emit ResourceMetaDataChangedEvent(tokenId, metaDataArray, msg.sender);
     }
 
+    /**
+     * Mint a new resource.
+     *
+     * This function allows minting several new resources based on the produces_resources property of the resource template.
+     * This will facilitates the creation of multiple tokens from a single token.
+     *
+     * Example: A a demi carcass of beef can produce multiple cuts of pieces of meat, such as ribs, steaks, etc.
+     *
+     * The metadata for the new resource is set to the metadata specified by `_metaData`.
+     *
+     * @param producerToken - The unique identifier for the token that produces the new resource.
+     * @param _metaData - The metadata to be associated with the new resource.
+     *
+     * Requirements:
+     * - The caller must be the owner of the producer token.
+     * - The caller must have the required role to create the subsequent resources.
+     */
     function mintOneToMany(
         uint256 producerToken,
         string memory _metaData
@@ -249,13 +313,30 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         _burn(msg.sender, producerToken, 1);
     }
 
+    /**
+     * Mint a new resource.
+     *
+     * This function allows minting a new resource based on the resource template specified by `resourceId`.
+     * The caller must have the required resources to mint the new resource. The required resources are specified
+     * in the resource template. The caller must also have the required role to mint the new resource.
+     *
+     * The metadata for the new resource is set to the metadata specified by `_metaData`.
+     *
+     * @param resourceId - The unique identifier for the resource template.
+     * @param quantity - The quantity of the resource to mint.
+     * @param _metaData - The metadata to be associated with the new resource.
+     * @param ingredients - The ingredients used to mint the new resource.
+     *
+     * Requirements:
+     * - The caller must have the required resources to mint the new resource.
+     * - The caller must be the owner of the producer token.
+     */
     function mintRessource(
         uint256 resourceId,
         uint256 quantity,
         string memory _metaData,
         uint256[] memory ingredients
     ) public {
-        // Get the actual ressource template
         ResourceTemplate storage resourceTemplate = ressourceTemplates[
             resourceId
         ];
@@ -265,9 +346,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         // Mint the new ressource
         // if the ressource is not fungible (NFT), mint only one
         // if the ressource is fungible, mint the quantity specified
-
         for (uint i = 0; i < quantity; i++) {
-            // Burn the resources needed to mint the ressource
             uint256[] memory burntIngredients = _burnResources(
                 resourceTemplate,
                 1,
@@ -280,7 +359,6 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                 ""
             );
 
-            // Create the unique metadata for each newly minted resource
             MetaData storage meta = metaData[globalTokenId];
 
             meta.resourceId = resourceTemplate.ressource_id;
@@ -296,10 +374,8 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
                 })
             );
 
-            // Add the tokenId to the resource type mapping
             tokensByResourceType[resourceId].push(globalTokenId);
 
-            // Emit the ResourceEvent
             emit ResourceCreatedEvent(
                 globalTokenId,
                 meta.ressourceName,
@@ -313,6 +389,26 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         }
     }
 
+    /**
+     * Validates if a resource can be created based on the given template and quantity.
+     *
+     * This function performs several checks to ensure that a resource specified by the `resourceTemplate`
+     * can be validly created. It verifies the existence and uniqueness of the resource, the caller's
+     * authorization, and whether the necessary ingredients are available for minting the specified quantity
+     * of the resource.
+     *
+     * @param resourceTemplate - A struct containing the details of the resource to be created, including
+     *                           its ID and required role for creation.
+     * @param quantity - The amount of the resource to be created.
+     * @param ingredients - An array of ingredient IDs provided to create the resource.
+     *
+     * Requirements:
+     * - The resource must exist within the system and have a unique ID.
+     * - The caller must have the appropriate role to create the resource.
+     * - The resource to be created cannot be present in another resource produce_resources list,
+     *          as in this case it would have to be created via mintOneToMany.
+     * - All necessary ingredients for creating the specified quantity of the resource must be available.
+     */
     function isValidResource(
         ResourceTemplate memory resourceTemplate,
         uint256 quantity,
@@ -336,13 +432,10 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             "Caller does not have the right to use the process"
         );
 
-        // Assuming `resources` is a mapping or an array containing all resources
-        // and `resourceTemplate` is the template of the resource you're about to mint
-
+        // Ensure the resource_id is not present in any other resource's produces_resources
         bool isResourceIdUnique = true;
 
         for (uint i = 0; i < allRessourceTemplates.length; i++) {
-            // Access the produces_resources of each resource
             uint256[] memory producesResources = allRessourceTemplates[i]
                 .produces_resources;
 
@@ -358,16 +451,29 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
             }
         }
 
-        // Ensure the resource_id is not present in any other resource's produces_resources
         require(
             isResourceIdUnique,
             "This resource needs to be created from a producer resource."
         );
 
-        // Check if the call require(
+        // the caller must have the required resources to mint the new resource
         hasResourcesToMintItem(resourceTemplate, quantity, ingredients);
     }
 
+    /**
+     * Checks if the caller has the required resources to mint the new resource.
+     *
+     * This function checks if the caller has the necessary resources to mint the new resource specified by the
+     * `template`. It verifies the availability of the required resources in the caller's inventory and calculates
+     * the possible quantity of the new resource that can be created based on the available resources.
+     *
+     * @param template - A struct containing the details of the resource to be created, including the IDs of the
+     *                   required resources and their amounts.
+     * @param quantity - The amount of the resource to be created.
+     * @param ingredients - An array of ingredient IDs provided to create the resource.
+     *
+     * @return bool - A boolean value indicating whether the caller has the required resources to mint the new resource.
+     */
     function hasResourcesToMintItem(
         ResourceTemplate memory template,
         uint256 quantity,
@@ -381,23 +487,18 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
             uint256 totalResourceBalance = 0;
 
+            // Check if the ingredient provided ingredient list contains enough of the needed resource
             for (uint j = 0; j < ingredients.length; j++) {
-                // Get the metaData of the ingredient
                 MetaData storage meta = metaData[ingredients[j]];
-                // If the resourceId of the ingredient matches the specific resourceId
                 if (meta.resourceId == neededResourceId) {
-                    // Get the balance of the ingredient
                     uint256 balance = balanceOf(msg.sender, ingredients[j]);
-                    // Add the balance to the total balance
                     totalResourceBalance += balance;
                 }
             }
-
             uint256 possibleQuantity = totalResourceBalance / neededAmount;
 
-            // Check if the ingredient provided ingredient list contains enough of the needed resource
             if (possibleQuantity < quantity) {
-                // Revert with a message that includes the possible quantity
+                // If not, revert with a message that includes the possible quantity
                 returnValue = false;
                 revert(
                     string(
@@ -423,6 +524,20 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         return returnValue;
     }
 
+    /**
+     * Burns the required resources to create a new resource.
+     *
+     * This function burns the necessary resources to create a new resource specified by the `template`. It iterates
+     * through the ingredients provided to create the new resource and burns the required amount of each ingredient.
+     * The burned ingredients are stored in an array for traceability purposes.
+     *
+     * @param template - A struct containing the details of the resource to be created, including the IDs of the
+     *                   required resources and their amounts.
+     * @param quantity - The amount of the resource to be created.
+     * @param ingredients - An array of ingredient IDs provided to create the resource.
+     *
+     * @return uint256[] - An array of ingredient IDs that were burned to create the new resource.
+     */
     function _burnResources(
         ResourceTemplate memory template,
         uint256 quantity,
@@ -441,9 +556,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
 
             for (uint j = 0; j < ingredients.length; j++) {
                 uint256 resource = ingredients[j];
-                // If the resourceId of the ingredient matches the specific resourceId
                 if (metaData[resource].resourceId == neededResourceId) {
-                    // Get the balance of the ingredient
                     uint256 availableAmount = balanceOf(msg.sender, resource);
 
                     uint256 amountToBurn = availableAmount >= neededAmount
