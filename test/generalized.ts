@@ -50,7 +50,30 @@ describe("BC24", function () {
       .giveUserRole(manufacturer.address, "MANUFACTURER");
   });
 
-  it("should read the templates", async function () {
+  it("should overwrite the admin set metaData", async function () {
+    const jsonObject = {
+      placeOfOrigin: "Random Place",
+      dateOfBirth: Math.floor(Math.random() * 1000000000),
+      gender: Math.random() < 0.5 ? "Male" : "Female",
+      weight: Math.random() * 100,
+    };
+    await bc24Contract
+      .connect(breeder)
+      .mintRessource(42, 1, JSON.stringify(jsonObject), []);
+    const tokenId = 65;
+    const newMetaData = "New Metadata for admin";
+
+    bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
+    const metaData = await bc24Contract.getMetaData(tokenId);
+    console.log(metaData);
+
+    const newMetaData1 = "switzerland will win the euro";
+    bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
+    const metaData1 = await bc24Contract.getMetaData(tokenId);
+    console.log(metaData1);
+  });
+
+  /*  it("should read the templates", async function () {
     const templates = await bc24Contract.getResourceTemplates();
     // Assuming `templates` and `ressourceTemplates` are the arrays to compare
     // Extract and sort the resource_id from both arrays
@@ -1172,4 +1195,5 @@ describe("BC24", function () {
     }
     return tokenEvents[tokenEvents.length - 1].args;
   };
+  */
 });

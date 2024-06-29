@@ -133,7 +133,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         for (uint i = 0; i < data.length; i++) {
             if (
                 hasRole(
-                    keccak256(abi.encode(data[i].required_role)),
+                    keccak256(abi.encode(data[i].required_role)), //ADMIN_ROLE
                     msg.sender
                 )
             ) {
