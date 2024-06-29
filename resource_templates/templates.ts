@@ -301,6 +301,7 @@ export const ressourceTemplates = [
     ressource_type: "Meat",
   },
 
+  // <----------------------> Product
   {
     ressource_id: 66,
     ressource_name: "Mergez Patty",
@@ -310,10 +311,9 @@ export const ressourceTemplates = [
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
-    ressource_type: "Meat",
+    ressource_type: "Product",
   },
 
-  // <----------------------> Product
   {
     ressource_id: 67,
     ressource_name: "Mergez",
@@ -342,8 +342,8 @@ export const ressourceTemplates = [
     ressource_id: 70,
     ressource_name: "Weird mix",
     needed_resources: [54, 60, 65], // Sheep shoulder, Cow hip, Chicken breasts
-    needed_resources_amounts: [500, 500, 500],
-    initial_amount_minted: 1500,
+    needed_resources_amounts: [50, 50, 50],
+    initial_amount_minted: 150,
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
@@ -353,8 +353,8 @@ export const ressourceTemplates = [
     ressource_id: 71,
     ressource_name: "Chicken wings fried",
     needed_resources: [69],
-    needed_resources_amounts: [1000],
-    initial_amount_minted: 1000,
+    needed_resources_amounts: [100],
+    initial_amount_minted: 100,
     required_role: "MANUFACTURER",
     produces_resources: [],
     produces_resources_amounts: [],
