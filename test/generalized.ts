@@ -57,23 +57,24 @@ describe("BC24", function () {
       gender: Math.random() < 0.5 ? "Male" : "Female",
       weight: Math.random() * 100,
     };
-    await bc24Contract
-      .connect(breeder)
-      .mintRessource(42, 1, JSON.stringify(jsonObject), []);
+    await bc24Contract.connect(breeder).mintRessource(42, 1, "discoparty", []);
     const tokenId = 65;
-    const newMetaData = "New Metadata for admin";
 
-    bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
-    const metaData = await bc24Contract.getMetaData(tokenId);
-    console.log(metaData);
+    let newMetaData = "New Metadata for breddou";
+    await bc24Contract.connect(breeder).setMetaData(tokenId, newMetaData);
 
-    const newMetaData1 = "switzerland will win the euro";
-    bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
-    const metaData1 = await bc24Contract.getMetaData(tokenId);
-    console.log(metaData1);
+    newMetaData = "New Metadata for adminou";
+    await bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
+
+    newMetaData = "switzerland will win the euro";
+    await bc24Contract.connect(defaultAdmin).setMetaData(tokenId, newMetaData);
+
+    const lastMetaData = await bc24Contract.getMetaData(tokenId);
+
+    expect(lastMetaData.data[1].dataString).to.equal(newMetaData);
   });
 
-  /*  it("should read the templates", async function () {
+  it("should read the templates", async function () {
     const templates = await bc24Contract.getResourceTemplates();
     // Assuming `templates` and `ressourceTemplates` are the arrays to compare
     // Extract and sort the resource_id from both arrays
@@ -613,10 +614,10 @@ describe("BC24", function () {
       manufacturer.address,
       90
     );
-    expect(sheepShoulderBalance).to.equal(2000);
-    expect(cowHipBalance).to.equal(500);
-    expect(chickenBreastsBalance).to.equal(2500);
-    expect(complexRecipeBalance).to.equal(1500);
+    expect(sheepShoulderBalance).to.equal(2450);
+    expect(cowHipBalance).to.equal(950);
+    expect(chickenBreastsBalance).to.equal(2950);
+    expect(complexRecipeBalance).to.equal(150);
   });
 
   it("test breed", async () => {
@@ -1195,5 +1196,4 @@ describe("BC24", function () {
     }
     return tokenEvents[tokenEvents.length - 1].args;
   };
-  */
 });
