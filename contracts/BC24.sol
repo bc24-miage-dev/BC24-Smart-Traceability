@@ -90,7 +90,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         }
 
         _grantRole(ADMIN_ROLE, admin);
-        userRoles[admin] = "ADMIN_ROLE";
+        giveUserRole(admin, "ADMIN_ROLE");
 
         // Populate the resourceTemplates mapping
         for (uint i = 0; i < _ressourceTemplates.length; i++) {
@@ -133,7 +133,7 @@ contract BC24 is ERC1155, ERC1155Burnable, AccessControl {
         for (uint i = 0; i < data.length; i++) {
             if (
                 hasRole(
-                    keccak256(abi.encode(data[i].required_role)),
+                    keccak256(abi.encode(data[i].required_role)), //ADMIN_ROLE
                     msg.sender
                 )
             ) {
